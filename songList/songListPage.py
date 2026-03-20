@@ -1,6 +1,6 @@
-from PySide6.QtCore import Signal, Qt, QRect
-from PySide6.QtGui import QPainter
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit
+from PySide6.QtCore import Signal, Qt, QRect, QSize
+from PySide6.QtGui import QPainter, QFont, QIcon
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton
 from .songListView import MusicListView
 from styleTemplate.svgIconButton import SvgIconButton
 from assets.svg import refresh_icon, shuffle_icon
@@ -130,96 +130,96 @@ class ListTitle(QWidget):
         ), Qt.AlignmentFlag.AlignCenter, "时长")
 
 
-class SearchBox(QLineEdit):
+class SearchBox(QWidget):
     """搜索框"""
     searchSignal = Signal(str)
 
     def __init__(self, placeholder="搜索...", parent=None):
         super().__init__(parent)
-        self.setup_ui(placeholder)
-        self.setup_style()
-        self.setup_connections()
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-    def setup_ui(self, placeholder):
+        self.setObjectName("SearchBox")
+        self.search_edit = QLineEdit()
+        self.search_edit.setObjectName("SearchLineEdit")
+        self.search_button = QPushButton()
+        self.search_button.setObjectName("SearchButton")
+
+        self.init_ui(placeholder)
+        self.init_style()
+        self.search_edit.returnPressed.connect(self.on_text_emit)
+        self.search_button.clicked.connect(self.on_text_emit)
+
+    def init_ui(self, placeholder):
         """设置 UI 组件"""
-        self.setPlaceholderText(placeholder)
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        self.search_edit.setPlaceholderText(placeholder)
+        self.search_edit.setFont(QFont("Microsoft YaHei", 10))
+        self.search_edit.setFrame(False)  # 清除默认边框
+        self.search_edit.setTextMargins(0, 0, 40, 0)  # 内边距
+        self.search_edit.setClearButtonEnabled(True)  # 清除按钮
+
+        self.search_button.setIcon(QIcon.fromTheme("edit-find"))
+        self.search_button.setIconSize(QSize(20, 20))
+        self.search_button.setFixedSize(30, 30)
+        self.search_button.setFlat(True)  # 去除边框
+
+        main_layout.addWidget(self.search_button)
+        main_layout.addWidget(self.search_edit)
+
         self.setFixedHeight(30)
-        self.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
 
-        # 创建图标和清除按钮容器
-        # self.left_widget = QWidget()
-        # self.left_layout = QHBoxLayout(self.left_widget)
-        # self.left_layout.setContentsMargins(12, 0, 0, 0)
-        # self.left_layout.setSpacing(0)
+    def init_style(self):
+        """设置样式表，核心美化逻辑"""
+        self.setStyleSheet("""
+            /* 搜索框容器 */
+            #SearchBox {
+                background: #b6b8e2;
+                border-radius: 5px;  /* 圆角（高度的一半）*/
+                border: 1px solid #6e74c4;
+            }
 
-        # # 搜索图标
-        # self.search_icon = SearchIcon(color="#999999", size=18)
-        # self.left_layout.addWidget(self.search_icon)
-        #
-        # # 清除按钮
-        # self.clear_btn = ClearButton(self)
-        # self.clear_btn.clicked.connect(self.clear_search)
+            /* 输入框基础样式 */
+            #SearchLineEdit {
+                background: transparent;  /* 透明背景，继承容器渐变 */
+                color: #212529;
+                border: none;
+                outline: none;
+            }
 
-        # 设置边距
-        self.setTextMargins(36, 0, 36, 0)
+            /* 输入框聚焦效果 */
+            #SearchLineEdit:focus {
+                color: #4a4c57;
+            }
 
-    def setup_style(self):
-        """设置样式"""
-        self.base_style = """
-                    QLineEdit {
-                        border: 2px solid #e0e0e0;
-                        border-radius: 15px;
-                        background-color: #f8f9fa;
-                        padding: 0px 12px;
-                        font-size: 15px;
-                        font-family: "微软雅黑", "SimHei", Arial, sans-serif;
-                        color: #333333;
-                    }
-                    QLineEdit:focus {
-                        border: 2px solid #4A90E2;
-                        background-color: #ffffff;
-                    }
-                    QLineEdit:hover {
-                        border: 2px solid #cccccc;
-                    }
-                """
-        self.setStyleSheet(self.base_style)
+            /* 输入框占位符文字样式 */
+            #SearchLineEdit::placeholder {
+                color: #adb5bd;
+                font-style: italic;
+            }
 
-    def setup_connections(self):
-        """设置信号连接"""
-        self.textChanged.connect(self.on_text_changed)
-        self.returnPressed.connect(self.on_return_pressed)
+            /* 搜索按钮默认样式 */
+            #SearchButton {
+                border-radius: 5px;
+                background: transparent;
+            }
 
-    def on_text_changed(self, text):
-        """文本变化时"""
-        # self.clear_btn.setVisible(len(text) > 0)
-        # if len(text) > 0:
-        #     self.clear_btn.setParent(self)
-        #     self.clear_btn.move(self.width() - 36, (self.height() - 24) // 2)
-        #     self.clear_btn.raise_()
-        #     self.clear_btn.show()
+            /* 按钮hover效果 */
+            #SearchButton:hover {
+                background: #9295d3;
+            }
 
-    def on_return_pressed(self):
+            /* 按钮按下效果 */
+            #SearchButton:pressed {
+                background: #6e74c4;
+            }
+        """)
+
+    def on_text_emit(self):
         """回车键按下时"""
-        self.searchSignal.emit(self.text())
-
-    def clear_search(self):
-        """清除搜索内容"""
-        self.clear()
-        self.setFocus()
-
-    # def focusInEvent(self, event):
-    #     """获得焦点时"""
-    #     super().focusInEvent(event)
-    #     self.search_icon.color = "#4A90E2"
-    #     self.search_icon.update()
-    #
-    #
-    # def focusOutEvent(self, event):
-    #     """失去焦点时"""
-    #     super().focusOutEvent(event)
-    #     self.search_icon.color = "#999999"
-    #     self.search_icon.update()
+        self.searchSignal.emit(self.search_edit.text())
 
 
 class RefreshButton(SvgIconButton):

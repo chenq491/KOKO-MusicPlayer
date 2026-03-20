@@ -1,12 +1,11 @@
 import io
-
 import numpy as np
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Slot
 from PySide6.QtGui import QPainter, QColor, QLinearGradient, QPixmap, QImage
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGraphicsBlurEffect
 
 from bak.songItem import SongItem, create_pixmap_from_bytes
-from uitls.audioLoader import AudioLoader
+from uitls.audioLoader import AudioFFMLoader
 from uitls.utils import fft_from_chunk
 from PIL import Image, ImageFilter
 
@@ -46,6 +45,9 @@ class ImmersiveModeWidget(QWidget):
         #         background-color: white;
         #     }
         # """)
+
+        self.loader_thread = AudioFFMLoader()
+        self.loader_thread.dataLoaded.connect(self.on_data_loaded)
 
         # =========背景层===========
         self._background_initialized = False
@@ -116,15 +118,14 @@ class ImmersiveModeWidget(QWidget):
             )
             self.bg_label.setPixmap(self.bg_pixmap)
 
-        def load_success(result):
-            self.audio = result["audio"]
-            self.sample_rate = result["sample_rate"]
-            self.pos = 0
-            loader.deleteLater()
+        self.loader_thread.set_item(song_item)
+        self.loader_thread.start()
 
-        loader = AudioLoader()
-        loader.finished.connect(load_success)
-        loader.load_audio_ffm(song_item)
+    @Slot()
+    def on_data_loaded(self, result: dict):
+        self.audio = result["audio"]
+        self.sample_rate = result["sample_rate"]
+        self.pos = 0
 
     def update_spectrum_from_position(self, pos_ms):
         """更新频谱图

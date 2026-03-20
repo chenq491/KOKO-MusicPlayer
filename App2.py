@@ -182,8 +182,8 @@ class MusicPlayer(QMainWindow):
         self.media_player.setSource(QUrl.fromLocalFile(song_item.music_file_path))
         self.media_player.play()
 
-        # 推迟500ms再加载音乐ffm数据，防止动画卡顿
-        QTimer.singleShot(500, lambda: self.immersive_mode_widget.load_audio(song_item))
+        # 加载音乐ffm数据
+        self.immersive_mode_widget.load_audio(song_item)
 
     def update_music_progress(self):
         """更新歌曲进度"""
