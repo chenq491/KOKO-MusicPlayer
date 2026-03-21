@@ -5,16 +5,14 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Slot, QUrl, QTimer, Qt, QPropertyAnimation, QEasingCurve
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 import sys
-from songList.songItem import SongItem
 from singleton.playListManager import PlayListManager
 from playListWidget import PlayListPanel
 from singleton.config import Config
 from constant import PlayMode, SongChanged
-from immersiveModeWidget import ImmersiveModeWidget
+from immersiveModePage import ImmersiveModeWidget
 from components.message import show_message
-from settingsWidget import SettingsWidget
-from bottomPanel import BottomPanel
-from progressDisplay import ProgressDisplay
+from settingPage import SettingsWidget
+from bottomPanel import BottomPanel, ProgressDisplay
 from songList.songListPage import SongListPage
 from titleBar import TitleBar
 
@@ -106,7 +104,7 @@ class MusicPlayer(QMainWindow):
         self.media_player.playbackStateChanged.connect(self.on_playback_state_changed)  # 播放状态改变
 
         self.song_list_page.songItemDoubleClicked.connect(self.on_music_list_item_double_clicked)
-        self.song_list_page.refresh.connect(lambda: self.update_music_list(Config.get_value("music_dir")))
+        self.song_list_page.refresh.connect(self.update_music_list)
 
         self.settings_widget.musicDirSelected.connect(self.on_music_dir_selected)  # 选择音乐文件夹
         self.settings_widget.volumeChanged.connect(self.on_volume_changed)  # 音量改变
@@ -136,14 +134,14 @@ class MusicPlayer(QMainWindow):
                 play_progress = Config.get_value('play_progress')
                 self.bottom_panel.set_current_play_mode(play_progress['play_mode'])
                 if PlayListManager.get_playlist():
-                    song_item = PlayListManager.get_current_song_item()
-                    self.song_list_page.set_current(PlayListManager.get_current_song_index())
-                    self.play_music(song_item)
+                    self.song_list_page.set_current()
+                    self.play_music()
                     self.media_player.pause()
                     QTimer.singleShot(50, set_position)
 
-    def play_music(self, song_item: SongItem):
+    def play_music(self):
         """播放音乐"""
+        song_item = PlayListManager.get_current_song_item()
         # 设置当前歌曲到列表
         self.playlist_panel.set_current()
 
@@ -171,14 +169,16 @@ class MusicPlayer(QMainWindow):
 
     def update_music_list(self):
         """更新音乐列表"""
-        self.song_list_page.show_music_list(PlayListManager.get_song_list())  # 0.7s
         # TODO 查出当前播放的音乐SongItem，找到其对应的新的SongItem，获取其索引值
         # 如果存在播放列表，则更新它
         if PlayListManager.get_playlist():
             PlayListManager.update_playlist(self.bottom_panel.get_current_play_mode(is_index=False))
         # 若存在当前播放音乐，则跳转并高亮显示
         if PlayListManager.get_current_song_index() != -1:
-            self.song_list_page.set_current(PlayListManager.get_current_song_index())
+            self.song_list_page.set_current()
+
+        self.song_list_page.show_music_list()  # 0.7s
+
 
     def close_smooth(self):
         """平滑关闭（淡出）"""
@@ -206,7 +206,8 @@ class MusicPlayer(QMainWindow):
     def on_music_dir_selected(self, music_dir):
         """选择了音乐文件夹"""
         Config.save_value('music_dir', music_dir)
-        self.update_music_list(music_dir)
+        PlayListManager.reset()  # 重置播放管理器
+        self.update_music_list()
 
     @Slot()
     def on_music_list_item_double_clicked(self, current_song_index):
@@ -221,7 +222,7 @@ class MusicPlayer(QMainWindow):
         # 播放音乐
         if not self.media_player.source().isEmpty():
             self.song_click_changed = True
-        self.play_music(PlayListManager.get_current_song_item())
+        self.play_music()
 
     @Slot()
     def on_media_player_error(self, error, error_string):
@@ -246,8 +247,8 @@ class MusicPlayer(QMainWindow):
             else:
                 self.timer.stop()
                 PlayListManager.next_song()
-                self.song_list_page.set_current(PlayListManager.get_current_song_index())
-                self.play_music(PlayListManager.get_current_song_item())
+                self.song_list_page.set_current()
+                self.play_music()
 
     @Slot()
     def on_timer_timeout(self):
@@ -287,15 +288,16 @@ class MusicPlayer(QMainWindow):
             PlayListManager.next_song()
         else:
             PlayListManager.previous_song()
-        self.song_list_page.set_current(PlayListManager.get_current_song_index())
-        self.play_music(PlayListManager.get_current_song_item())
+        self.song_list_page.set_current()
+        self.play_music()
 
     @Slot()
     def on_playlist_select_music(self):
         """播放列表选择音乐"""
         if not self.media_player.source().isEmpty():
             self.song_click_changed = True
-        self.play_music(PlayListManager.get_current_song_item())
+        self.song_list_page.set_current()
+        self.play_music()
 
     @Slot()
     def on_page_changed(self, page_index: int):

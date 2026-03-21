@@ -1,13 +1,167 @@
-from PySide6.QtCore import Signal, Slot, Qt, QSize
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QApplication, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtCore import Signal, Slot, Qt, QSize, QRectF, QRect
+from PySide6.QtGui import QFont, QPixmap, QPainter, QColor, QPen, QBrush
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QApplication, QLabel, QPushButton, QVBoxLayout, QSlider, \
+    QStyleOptionSlider, QStyle
 
 from constant import SongChanged, PlayMode
 from bak.songItem import SongItem, create_pixmap_from_bytes
 from assets.svg import playing_icon, paused_icon, next_song_icon, prev_song_icon, play_list_icon, order_play_mode_icon, \
     random_play_mode_icon, repeat_play_mode_icon, immersive_mode_icon
 from styleTemplate.svgIconButton import SvgIconButton
-from uitls.utils import create_svg_icon
+from uitls.utils import create_svg_icon, ms_to_str
+
+
+class ProgressSlider(QSlider):
+    """进度条"""
+
+    def __init__(self, orientation=Qt.Orientation.Horizontal, parent=None):
+        super().__init__(orientation, parent)
+        self.handle_pix = QPixmap("assets/吉他.svg")
+
+        self.setFixedHeight(32)
+
+        self.setMouseTracking(True)  # 开启鼠标追踪以支持 hover 效果
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+
+        self.groove_height = 4
+        self.groove_border_color = QColor(255, 255, 255)
+        self.groove_border_width = 1
+        self.groove_bg_color = QColor("#cbcfea")
+        self.groove_radius = 2
+        self.groove_progress_color = QColor("#8186cc")
+
+        self.groove_rect = QRect(
+            self.rect().left(),
+            self.rect().top() + ((self.rect().height() - self.groove_height) // 2),
+            self.rect().width(),
+            self.groove_height
+        )
+
+    def resizeEvent(self, event, /):
+        super().resizeEvent(event)
+        self.groove_rect = QRect(
+            self.rect().left(),
+            self.rect().top() + ((self.rect().height() - self.groove_height) // 2),
+            self.rect().width(),
+            self.groove_height
+        )
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        painter.setClipping(False)
+
+        # TODO 这里可以选择性地重绘背景，达到性能优化
+        """
+        绘制滑槽
+        """
+        # 计算进度条的宽度
+        progress_ratio = (self.value() - self.minimum()) / (self.maximum() - self.minimum())
+        progress_width = int(self.groove_rect.width() * progress_ratio)
+        progress_rect = QRect(
+            self.groove_rect.left(),
+            self.groove_rect.top(),
+            progress_width,
+            self.groove_rect.height()
+        )
+
+        # 绘制滑槽边框和背景
+        painter.save()
+        painter.setPen(QPen(self.groove_border_color, self.groove_border_width))  # 边框
+        painter.setBrush(QBrush(self.groove_bg_color))  # 背景
+        painter.drawRoundedRect(
+            self.groove_rect,
+            self.groove_radius,
+            self.groove_radius
+        )
+        painter.restore()
+
+        # 绘制滑槽进度
+        painter.save()
+        painter.setPen(Qt.PenStyle.NoPen)  # 无边框
+        painter.setBrush(QBrush(self.groove_progress_color))
+        painter.drawRoundedRect(
+            progress_rect,
+            self.groove_radius if progress_width > 0 else 0,  # 有进度才显示圆角
+            self.groove_radius if progress_width > 0 else 0,
+        )
+        painter.restore()
+
+        """
+        绘制手柄
+        """
+        handle_rect = QRect(
+            progress_rect.right() - 16,
+            self.rect().top() + ((self.rect().height() -32) // 2),
+            32, 32
+        )
+        center_x = handle_rect.center().x()
+        center_y = handle_rect.center().y()
+
+        painter.save()
+        painter.translate(center_x, center_y)
+        if self.underMouse():  # 鼠标悬浮
+            painter.rotate(15)
+        if self.isSliderDown():  # 鼠标按下
+            painter.scale(1.2, 1.2)
+        w = self.handle_pix.width()
+        h = self.handle_pix.height()
+        target_rect = QRectF(-w / 2, -h / 2, w, h)
+        painter.drawPixmap(target_rect.toRect(), self.handle_pix)
+        painter.restore()
+
+    def mousePressEvent(self, event):
+        # 如果需要自定义点击区域（比如只点击图片有效区域），可以在这里拦截
+        # 否则直接调用父类，保持默认拖动行为
+        super().mousePressEvent(event)
+
+
+class ProgressDisplay(QWidget):
+    songProgressChanged = Signal(int)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setFixedHeight(32)
+
+        # 歌曲进度条
+        self.song_progress_slider = ProgressSlider(Qt.Orientation.Horizontal)
+        self.song_progress_slider.valueChanged.connect(self.on_song_progress_slider_changed)
+
+        # 歌曲进度数字
+        self.song_progress_label = QLabel("00:00 / 00:00")
+
+        main_layout = QHBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        main_layout.addWidget(self.song_progress_slider)
+        main_layout.addWidget(self.song_progress_label)
+
+        self.setLayout(main_layout)
+
+    def reset_progress(self):
+        """重置进度"""
+        self.song_progress_slider.setValue(0)
+        self.song_progress_slider.setEnabled(True)
+        self.song_progress_label.setText("00:00 / 00:00")
+
+    def update_progress(self, position, duration):
+        """更新进度"""
+        if duration < 0:
+            return
+
+        # 更新进度条
+        self.song_progress_slider.blockSignals(True)  # 阻塞信号
+        self.song_progress_slider.setMaximum(duration)
+        self.song_progress_slider.setValue(position)
+        self.song_progress_slider.blockSignals(False)
+
+        # 更新时间标签
+        self.song_progress_label.setText(f"{ms_to_str(position)} / {ms_to_str(duration)}")
+
+    def on_song_progress_slider_changed(self, value):
+        """歌曲进度条值改变"""
+        self.songProgressChanged.emit(value)
 
 
 class BottomPanel(QWidget):
@@ -123,7 +277,7 @@ class BottomPanel(QWidget):
         """更新视图"""
         self.play_or_paused_button.update_icon(is_playing)
 
-    def get_current_play_mode(self, is_index = True):
+    def get_current_play_mode(self, is_index=True):
         if is_index:
             return self.current_play_mode_index
         else:
@@ -136,7 +290,6 @@ class BottomPanel(QWidget):
         self.play_mode_button.update_display(current_mode)
         if is_changing:
             self.platModeChanged.emit(current_mode)
-
 
     @Slot()
     def on_playlist_button_clicked(self):
