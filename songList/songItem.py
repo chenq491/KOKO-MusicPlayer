@@ -44,4 +44,5 @@ class SongItem:
     def __init__(self, music_file_path, index):
         self.index = index
         self.music_file_path = music_file_path
+        # TODO 可以优化cover_bytes项
         self.title, self.artist, self.album, self.duration, self.cover_bytes = load_meta_data(music_file_path)

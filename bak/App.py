@@ -10,9 +10,9 @@ from songItem import SongItem
 from singleton.playListManager import PlayListManager, PlayListPanel
 from singleton.config import Config
 from constant import PlayMode, MUSIC_SUFFIX, SongChanged
-from immersiveModeWidget import ImmersiveModeWidget
+from immersiveModePage import ImmersiveModeWidget
 from components.message import show_message
-from settingsWidget import SettingsWidget
+from settingPage import SettingsWidget
 from songListPage import SongListPage
 from bottomPanel import BottomPanel
 from progressDisplay import ProgressDisplay

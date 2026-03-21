@@ -1,8 +1,8 @@
 import re
 
 import numpy as np
-from PySide6.QtCore import QByteArray, Qt
-from PySide6.QtGui import QIcon, QPixmap, QPainter
+from PySide6.QtCore import QByteArray, Qt, QRect
+from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
 from PySide6.QtSvg import QSvgRenderer
 from scipy.fft import rfft
 
@@ -134,3 +134,27 @@ def create_svg_icon(svg_content: str, fill_color: str = None, size: int = 32) ->
     painter.end()
 
     return QIcon(pixmap)
+
+def load_default_cover(size, bg_color, note_color="#f891a7"):
+    """
+    加载默认的无封面图
+    :param size: 封面大小
+    :param bg_color: 背景颜色
+    :param note_color: 音符颜色
+    :return: 封面pixmap
+    """
+    pixmap = QPixmap(*size)
+    pixmap.fill(bg_color)
+
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)  # 抗锯齿
+    painter.setPen(QColor(note_color))
+
+    font = QFont("Arial", size[0] // 2)
+    painter.setFont(font)
+
+    text_rect = QRect(0, 0, size[0], size[1])
+    painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, "♪")
+    painter.end()
+
+    return pixmap

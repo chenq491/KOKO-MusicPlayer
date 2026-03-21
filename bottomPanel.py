@@ -16,7 +16,7 @@ class ProgressSlider(QSlider):
 
     def __init__(self, orientation=Qt.Orientation.Horizontal, parent=None):
         super().__init__(orientation, parent)
-        self.handle_pix = QPixmap("assets/吉他.svg")
+        self.handle_pix = QPixmap("assets/guitar.svg")
 
         self.setFixedHeight(32)
 

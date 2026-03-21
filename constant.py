@@ -11,3 +11,4 @@ class SongChanged(Enum):
 
 
 MUSIC_SUFFIX = [".mp3", ".flac"]
+COVER_SiZE = 60

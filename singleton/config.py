@@ -3,9 +3,6 @@ import os
 from pathlib import Path
 from constant import PlayMode
 
-current_script_path = Path(__file__).resolve()
-current_dir = current_script_path.parent
-print(current_dir)
 
 class Config:
     file_path = Path(__file__).resolve().parent.parent / "data" / "config.json"

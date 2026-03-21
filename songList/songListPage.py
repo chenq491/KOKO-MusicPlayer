@@ -1,6 +1,8 @@
 from PySide6.QtCore import Signal, Qt, QRect, QSize, Slot
 from PySide6.QtGui import QPainter, QFont, QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton
+
+from singleton.playListManager import PlayListManager
 from .songListView import MusicListView
 from styleTemplate.svgIconButton import SvgIconButton
 from assets.svg import refresh_icon, shuffle_icon
@@ -38,17 +40,16 @@ class SongListPage(QWidget):
         self.tool_bar.refresh.connect(self.refresh)
         self.tool_bar.searchSignal.connect(self.on_search)
 
-    def show_music_list(self, song_list: list):
+    def show_music_list(self):
         """显示音乐列表"""
         # self.list_body.loading_widget.start()
-        self.list_body.load_data(song_list)
-
-        self.total = len(song_list)
+        self.list_body.load_data()
+        self.total = PlayListManager.get_total_song()
         self.list_title.update_total(self.total)
 
-    def set_current(self, current_song_index: int):
+    def set_current(self):
         """跳转到指定的歌曲项并高亮显示"""
-        self.list_body.set_current(current_song_index)
+        self.list_body.set_current(PlayListManager.get_current_song_index())
 
     @Slot()
     def on_search(self, value: str):

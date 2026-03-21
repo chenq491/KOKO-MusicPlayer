@@ -71,6 +71,8 @@ class PlayListManager:
     @classmethod
     def set_current_play_index(cls, index: int):
         cls._current_play_index = index
+        if index < 0 or index >= len(cls._playlist):
+            return
         cls._current_song_index = cls._playlist[index]
 
     @classmethod
@@ -84,6 +86,19 @@ class PlayListManager:
     @classmethod
     def set_current_song_index(cls, index: int):
         cls._current_song_index = index
+
+    @classmethod
+    def get_total_song(cls):
+        return len(cls._song_list)
+
+    @classmethod
+    def reset(cls):
+        cls._playlist = []
+        cls._song_list = []
+        cls._current_play_index = -1
+        cls._current_song_index = -1
+        if Config.get_value('music_dir') != "":
+            cls.set_song_list(load_music_list_in_dir(Config.get_value('music_dir')))
 
     @classmethod
     def update_playlist(cls, play_mode: PlayMode):

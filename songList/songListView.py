@@ -1,25 +1,12 @@
+import time
+
 from PySide6.QtCore import QAbstractListModel, QModelIndex, Qt, QSize, QRect, Slot, Signal, QPropertyAnimation, \
     QEasingCurve
 from PySide6.QtGui import QPixmap, QFontMetrics, QColor, QPen, QPainterPath, QPainter, QFont
 from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QListView, QStyleOptionViewItem
 
-
-def load_default_cover(size, bg_color, note_color="#f891a7"):
-    pixmap = QPixmap(*size)
-    pixmap.fill(bg_color)
-
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)  # 抗锯齿
-    painter.setPen(QColor(note_color))
-
-    font = QFont("Arial", size[0] // 2)
-    painter.setFont(font)
-
-    text_rect = QRect(0, 0, size[0], size[1])
-    painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, "♪")
-    painter.end()
-
-    return pixmap
+from singleton.playListManager import PlayListManager
+from uitls.utils import load_default_cover
 
 
 class MusicListModel(QAbstractListModel):
@@ -27,15 +14,18 @@ class MusicListModel(QAbstractListModel):
         super().__init__(parent)
         self._data = []  # 音乐信息列表
         self._cover_size = None  # 封面尺寸
+        self._total_cover_pixmap = []
         self._cover_pixmap = []
 
-    def load_data(self, data_list, cover_size):
-        self._data = data_list
+    def load_data(self, cover_size):
+        self._data = PlayListManager.get_song_list()
         self._cover_size = cover_size
-        self._cover_pixmap = self.load_pixmap()
+        self._total_cover_pixmap = self.load_pixmap()
+        self._cover_pixmap = list(range(len(self._total_cover_pixmap)))
 
     def load_pixmap(self):
         cover_pixmap = []
+
         default = load_default_cover((self._cover_size, self._cover_size), "#bdc3c7")
 
         for song_item in self._data:
@@ -54,16 +44,22 @@ class MusicListModel(QAbstractListModel):
 
         return cover_pixmap
 
-    def search_filter(self, data_list, key="title", value=""):
+    def search_filter(self, key="title", value=""):
         """搜索条件过滤"""
+        self.beginResetModel()
+        data_list = PlayListManager.get_song_list()
         self._data = []
+        self._cover_pixmap = []
         if value is None or value == "":
             self._data = data_list
+            self._cover_pixmap = list(range(len(self._total_cover_pixmap)))
         else:
-            for song_item in data_list:
-                v = getattr(song_item, key)
+            for i in range(len(data_list)):
+                v = getattr(data_list[i], key)
                 if value in v:
-                    self._data.append(song_item)
+                    self._data.append(data_list[i])
+                    self._cover_pixmap.append(i)
+        self.endResetModel()
 
     def rowCount(self, /, parent=QModelIndex()):
         return len(self._data)
@@ -75,7 +71,7 @@ class MusicListModel(QAbstractListModel):
 
         row = index.row()
         item = self._data[row]
-        cover = self._cover_pixmap[row]
+        cover = self._total_cover_pixmap[self._cover_pixmap[row]]
 
         if role == Qt.ItemDataRole.DisplayRole:
             # 默认文本显示
@@ -94,9 +90,6 @@ class MusicListItemDelegate(QStyledItemDelegate):
         self.cover_size = cover_size
         self.margin = 10
         self.ratio = [0.6, 0.32, 0.08]
-        self._pixmap_cache = {
-            "default": load_default_cover((self.cover_size, self.cover_size), "#bdc3c7")
-        }
 
     def sizeHint(self, option, index, /):
         return QSize(100, self.cover_size + self.margin * 2)  # 固定每行高度
@@ -143,8 +136,7 @@ class MusicListItemDelegate(QStyledItemDelegate):
         """
         cover_rect = QRect(
             # idx_rect.left(),
-            idx_rect.right(),
-            option.rect.top() + self.margin,
+            idx_rect.right(),            option.rect.top() + self.margin,
             self.cover_size,
             self.cover_size
         )
@@ -238,16 +230,19 @@ class MusicListView(QListView):
         self.setVerticalScrollMode(QListView.ScrollMode.ScrollPerPixel)
         self.setAutoScroll(False)
 
+        self.sensitivity = 2
+        self.cover_size = 60
+
         self.model = MusicListModel()
         self.setModel(self.model)
+
+        self.setAutoFillBackground(False)
+        self.setStyleSheet("background-color: transparent;")
 
         # 平滑滚动动画
         self._animation = QPropertyAnimation(self.verticalScrollBar(), b"value")
         self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         self._animation.setDuration(300)  # 毫秒
-
-        self.sensitivity = 2
-        self.cover_size = 60
 
         self.doubleClicked.connect(self.on_item_double_clicked)
 
@@ -261,17 +256,22 @@ class MusicListView(QListView):
         self._animation.setEndValue(target)
         self._animation.start()
 
-    def load_data(self, music_list):
-        self.model.load_data(music_list, self.cover_size)
+    def load_data(self):
+        self.model.load_data(self.cover_size)
         self.setItemDelegate(MusicListItemDelegate(self.cover_size))
 
     def set_current(self, idx: int):
         target = self.model.index(idx)
         self.setCurrentIndex(target)
 
+    def get_current(self):
+        idx = self.currentIndex()
+        data = self.model.data(idx, Qt.ItemDataRole.UserRole)
+        return data
+
     def search(self, value: str):
-        pass
-        # self.model.search_filter(value=value)
+        self.model.search_filter(value=value)
+        # self.setItemDelegate(MusicListItemDelegate(self.cover_size))
 
     def wheelEvent(self, event):
         event.accept()  # 消费事件，阻止默认滚动
