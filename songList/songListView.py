@@ -54,6 +54,17 @@ class MusicListModel(QAbstractListModel):
 
         return cover_pixmap
 
+    def search_filter(self, data_list, key="title", value=""):
+        """搜索条件过滤"""
+        self._data = []
+        if value is None or value == "":
+            self._data = data_list
+        else:
+            for song_item in data_list:
+                v = getattr(song_item, key)
+                if value in v:
+                    self._data.append(song_item)
+
     def rowCount(self, /, parent=QModelIndex()):
         return len(self._data)
 
@@ -125,7 +136,7 @@ class MusicListItemDelegate(QStyledItemDelegate):
         font.setPointSize(10)
         painter.setFont(font)
         painter.setPen(text_color)
-        painter.drawText(idx_rect, Qt.AlignmentFlag.AlignCenter, str(idx))
+        painter.drawText(idx_rect, Qt.AlignmentFlag.AlignCenter, str(idx + 1))
 
         """
         绘制封面
@@ -258,6 +269,10 @@ class MusicListView(QListView):
         target = self.model.index(idx)
         self.setCurrentIndex(target)
 
+    def search(self, value: str):
+        pass
+        # self.model.search_filter(value=value)
+
     def wheelEvent(self, event):
         event.accept()  # 消费事件，阻止默认滚动
 
@@ -282,5 +297,4 @@ class MusicListView(QListView):
     @Slot()
     def on_item_double_clicked(self, idx):
         data, _ = idx.data(Qt.ItemDataRole.UserRole)
-        print(data.index)
         self.itemDoubleClicked.emit(data.index)

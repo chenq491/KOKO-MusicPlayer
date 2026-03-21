@@ -1,73 +1,16 @@
-from PySide6.QtCore import QPropertyAnimation, QRect, QEasingCurve, QSize, Qt, Slot, Signal
+from PySide6.QtCore import Signal, QSize, QRect, QPropertyAnimation, QEasingCurve, Qt, Slot
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QListWidget, QListWidgetItem, QVBoxLayout, QLabel
+from PySide6.QtWidgets import QListWidget, QLabel, QVBoxLayout, QListWidgetItem
 
-from constant import PlayMode
 from bak.songItem import create_pixmap_from_bytes
-from uitls.utils import range_loop
-import random
-
-
-class PlayList:
-    """播放列表管理"""
-
-    def __init__(self):
-        # 播放列表
-        self.playlist = []  # 记录songItem索引
-        self._current_play_index = -1
-
-        # 歌曲列表
-        self.song_list = []  # 存放SongItem类型
-        self.current_song_index = -1
-
-    @property
-    def current_play_index(self):
-        return self._current_play_index
-
-    @current_play_index.setter
-    def current_play_index(self, value):
-        self._current_play_index = value
-        self.current_song_index = self.playlist[self._current_play_index]
-
-    def update_playlist(self, play_mode: PlayMode):
-        """设置播放列表
-        play_mode: 播放模式
-        """
-        if play_mode == PlayMode.ORDER:
-            # 顺序播放
-            self.playlist = range_loop(self.current_song_index, len(self.song_list))
-        elif play_mode == PlayMode.RANDOM:
-            # 随机播放
-            self.playlist = range_loop(self.current_song_index, len(self.song_list))
-            sublist = self.playlist[1:]
-            random.shuffle(sublist)
-            self.playlist[1:] = sublist
-        elif play_mode == PlayMode.REPEAT:
-            # 单曲循环
-            self.playlist = [self.current_song_index]
-        self.current_play_index = 0
-
-    def next_song(self):
-        """下一首歌"""
-        self.current_play_index = (self.current_play_index + 1) % len(self.playlist)
-
-    def previous_song(self):
-        """上一首歌"""
-        if self.current_play_index == 0:
-            self.current_play_index = len(self.playlist) - 1
-        else:
-            self.current_play_index -= 1
-
-    def get_current_song_item(self):
-        """获取当前歌曲"""
-        return self.song_list[self.current_song_index]
+from singleton.playListManager import PlayListManager
 
 
 class PlayListPanel(QListWidget):
     """播放列表界面"""
     selectMusic = Signal()
 
-    def __init__(self, playlist: PlayList, parent=None):
+    def __init__(self, playlist: PlayListManager, parent=None):
         super().__init__(parent)
 
         self.playlist = playlist
@@ -160,8 +103,8 @@ class PlayListPanel(QListWidget):
             return
 
         self.list_panel.clear()
-        for song_index in self.playlist.playlist:
-            song_item = self.playlist.song_list[song_index]
+        for song_index in PlayListManager.get_playlist():
+            song_item = PlayListManager.get_song_list()[song_index]
             item = QListWidgetItem()
             item.setText(song_item.title)
             item.setIcon(QIcon(create_pixmap_from_bytes(song_item.cover_bytes, (60, 60))))
@@ -172,10 +115,10 @@ class PlayListPanel(QListWidget):
         """设置当前播放歌曲高亮"""
         if not self.is_showing:
             return
-        self.list_panel.setCurrentRow(self.playlist.current_play_index)
+        self.list_panel.setCurrentRow(PlayListManager.get_current_play_index())
 
     @Slot()
     def on_song_double_clicked(self, item: QListWidgetItem):
         """双击播放列表里的音乐"""
-        self.playlist.current_play_index = self.list_panel.row(item)
+        PlayListManager.set_current_play_index(self.list_panel.row(item))
         self.selectMusic.emit()

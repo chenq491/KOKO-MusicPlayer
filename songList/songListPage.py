@@ -1,4 +1,4 @@
-from PySide6.QtCore import Signal, Qt, QRect, QSize
+from PySide6.QtCore import Signal, Qt, QRect, QSize, Slot
 from PySide6.QtGui import QPainter, QFont, QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton
 from .songListView import MusicListView
@@ -36,6 +36,7 @@ class SongListPage(QWidget):
         main_layout.addWidget(self.list_body)
 
         self.tool_bar.refresh.connect(self.refresh)
+        self.tool_bar.searchSignal.connect(self.on_search)
 
     def show_music_list(self, song_list: list):
         """显示音乐列表"""
@@ -49,28 +50,34 @@ class SongListPage(QWidget):
         """跳转到指定的歌曲项并高亮显示"""
         self.list_body.set_current(current_song_index)
 
+    @Slot()
+    def on_search(self, value: str):
+        self.list_body.search(value)
+
 
 class ListToolBar(QWidget):
     refresh = Signal()
+    searchSignal = Signal(str)
 
     """工具栏"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setFixedHeight(30)
 
-        self.refresh_button = RefreshButton()
-        self.shuffle_button = ShuffleButton()
+        self.refresh_button = RefreshButton(self)
+        self.shuffle_button = ShuffleButton(self)
+        self.search_box = SearchBox(parent=self)
 
         main_layout = QHBoxLayout(self)
-        main_layout.addWidget(SearchBox(parent=self))
+        main_layout.addWidget(self.search_box)
         main_layout.addWidget(self.shuffle_button)
         main_layout.addWidget(self.refresh_button)
 
         main_layout.setContentsMargins(10, 0, 10, 0)
 
-        self.setFixedHeight(45)
-
         self.refresh_button.clicked.connect(self.refresh)
+        self.search_box.searchSignal.connect(self.searchSignal)
 
 
 class ListTitle(QWidget):
@@ -226,10 +233,17 @@ class RefreshButton(SvgIconButton):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.pressed_size = (23, 23)
+        h = self.parent().height()
+        ph = h - 5
+
+        self.pressed_size = (ph, ph)
+        self.normal_size = (h, h)
 
         self.btn_icon = create_svg_icon(refresh_icon, self.normal_color, 25)
         self.hover_icon = create_svg_icon(refresh_icon, self.hover_color, 25)
+
+        self.setFixedSize(*self.normal_size)
+        self.setIconSize(QSize(*self.normal_size))
 
         self.setIcon(self.btn_icon)
         self.setToolTip("刷新")
@@ -239,10 +253,17 @@ class ShuffleButton(SvgIconButton):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.pressed_size = (23, 23)
+        h = self.parent().height()
+        ph = h - 5
+
+        self.pressed_size = (ph, ph)
+        self.normal_size = (h, h)
 
         self.btn_icon = create_svg_icon(shuffle_icon, self.normal_color, 25)
         self.hover_icon = create_svg_icon(shuffle_icon, self.hover_color, 25)
+
+        self.setFixedSize(*self.normal_size)
+        self.setIconSize(QSize(*self.normal_size))
 
         self.setIcon(self.btn_icon)
         self.setToolTip("打乱")

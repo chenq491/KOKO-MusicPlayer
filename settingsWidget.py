@@ -3,7 +3,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QLabel, QFileDialog, QHBoxLayout, QPushButton, \
     QLineEdit, QSlider, QFrame, QButtonGroup, QRadioButton
 
-from config import Config
+from singleton.config import Config
 
 
 def create_style_label(text, font_size=14, bold=True, color="#3a3f92"):

@@ -7,8 +7,8 @@ from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 import sys
 from pathlib import Path
 from songItem import SongItem
-from playList import PlayList, PlayListPanel
-from config import Config
+from singleton.playListManager import PlayListManager, PlayListPanel
+from singleton.config import Config
 from constant import PlayMode, MUSIC_SUFFIX, SongChanged
 from immersiveModeWidget import ImmersiveModeWidget
 from components.message import show_message
@@ -32,7 +32,7 @@ class MusicPlayer(QMainWindow):
         self.audio_output.setVolume(0.5)
 
         # 播放列表
-        self.playlist = PlayList()
+        self.playlist = PlayListManager()
         self.song_click_changed = False  # 是否是用户手动点击切换歌曲
 
         self.setWindowTitle("音乐播放器")
