@@ -1,8 +1,6 @@
 from PySide6.QtCore import Signal, QSize, QRect, QPropertyAnimation, QEasingCurve, Qt, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QListWidget, QLabel, QVBoxLayout, QListWidgetItem
-
-from bak.songItem import create_pixmap_from_bytes
 from singleton.playListManager import PlayListManager
 
 
@@ -107,7 +105,7 @@ class PlayListPanel(QListWidget):
             song_item = PlayListManager.get_song_list()[song_index]
             item = QListWidgetItem()
             item.setText(song_item.title)
-            item.setIcon(QIcon(create_pixmap_from_bytes(song_item.cover_bytes, (60, 60))))
+            item.setIcon(QIcon(song_item.cover))
             item.setSizeHint(QSize(0, 80))
             self.list_panel.addItem(item)
 

@@ -1,5 +1,7 @@
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QPushButton
+from abc import ABC, abstractmethod
+from theme import theme_manager
 
 
 class SvgIconButton(QPushButton):
@@ -9,22 +11,35 @@ class SvgIconButton(QPushButton):
         self.normal_size = (50, 50)
         self.pressed_size = (27, 27)
 
-        self.normal_color = "#5c6175"
-        self.hover_color = "#70768f"
+        self.normal_color = None
+        self.hover_color = None
 
         self.btn_icon = None
         self.hover_icon = None
 
-        # 设置按钮为圆形
+        # 设置固定高度和背景透明
         self.setFixedSize(*self.normal_size)
         self.setStyleSheet("""
                         QPushButton{
-                            background-color: transparent;
+                            background: transparent;
                             border: none;
                         }
                     """)
         self.setCursor(Qt.CursorShape.PointingHandCursor)  # 鼠标样式变化
         self.setIconSize(QSize(*self.normal_size))
+
+        theme_manager.themeChanged.connect(self.set_icon)
+
+    def set_icon(self):
+        self.normal_color = theme_manager.current.text_color_200
+        self.hover_color = theme_manager.current.text_color_100
+        self.create_icon()
+        self.setIcon(self.btn_icon)
+
+    # @abstractmethod
+    def create_icon(self):
+        """创建图标"""
+        pass
 
     def enterEvent(self, event, /):
         self.setIcon(self.hover_icon)

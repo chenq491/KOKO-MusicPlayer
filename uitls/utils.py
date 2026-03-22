@@ -1,9 +1,12 @@
 import re
+import sys
+from venv import create
 
 import numpy as np
 from PySide6.QtCore import QByteArray, Qt, QRect
-from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
+from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont, QPainterPath
 from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtWidgets import QApplication
 from scipy.fft import rfft
 
 
@@ -14,11 +17,13 @@ def ms_to_str(ms: int) -> str:
     secs = secs % 60
     return f"{mins:02}:{secs:02}"
 
+
 def secs_to_str(secs: float) -> str:
     """将s秒转为 MM:SS 时间格式"""
     mins = int(secs // 60)
     secs = int(secs % 60)
     return f"{mins:02}:{secs:02}"
+
 
 def range_loop(start: int, size: int) -> list:
     """
@@ -27,6 +32,7 @@ def range_loop(start: int, size: int) -> list:
     """
     return [x % size for x in range(start, start + size)]
 
+
 def fft_from_chunk(chunk, bins):
     """FFT频谱转换"""
     N = len(chunk)
@@ -34,7 +40,6 @@ def fft_from_chunk(chunk, bins):
     fft_mag = np.abs(rfft(windowed))
 
     fft_mag = fft_mag / N
-
 
     # 降维到指定数量 bins
     # step = len(fft_mag) // bins
@@ -95,13 +100,15 @@ def log_bins(fft_mag, num_bins):
 
     return np.array(binned[:num_bins])
 
-def smooth_freq_bins(spectrum, window_size = 5):
+
+def smooth_freq_bins(spectrum, window_size=5):
     """对频谱进行频率平滑"""
     if window_size <= 1:
         return spectrum
     padded = np.pad(spectrum, (window_size // 2, window_size // 2), mode='edge')
     smoothed = np.convolve(padded, np.ones(window_size) / window_size, mode='valid')
     return smoothed
+
 
 def create_svg_icon(svg_content: str, fill_color: str = None, size: int = 32) -> QIcon:
     """
@@ -135,9 +142,10 @@ def create_svg_icon(svg_content: str, fill_color: str = None, size: int = 32) ->
 
     return QIcon(pixmap)
 
-def load_default_cover(size, bg_color, note_color="#f891a7"):
+
+def create_default_cover(size, bg_color="#bdc3c7", note_color="#f891a7"):
     """
-    加载默认的无封面图
+    创建默认的无封面图
     :param size: 封面大小
     :param bg_color: 背景颜色
     :param note_color: 音符颜色
@@ -158,3 +166,47 @@ def load_default_cover(size, bg_color, note_color="#f891a7"):
     painter.end()
 
     return pixmap
+
+
+def draw_rounded_pixmap(pixmap, radius=10):
+    """
+    创建带圆角的pixmap
+    :param pixmap: 图片
+    :param radius: 圆角半径
+    :return: 带圆角地pixmap
+    """
+    if pixmap is None:
+        return QPixmap()
+
+    if radius <= 0:
+        return pixmap
+
+    w, h = pixmap.width(), pixmap.height()
+
+    max_radio = min(w, h) / 2.0
+    if radius > max_radio:
+        radius = int(max_radio)
+
+    rounded_pixmap = QPixmap(pixmap.size())
+    rounded_pixmap.fill(Qt.GlobalColor.transparent)
+
+    painter = QPainter(rounded_pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)  # 开启抗锯齿，边缘更平滑
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)  # 开启图像平滑变换
+
+    # 画圆角图片
+    path = QPainterPath()
+    path.addRoundedRect(0, 0, w, h, radius, radius)
+    painter.setClipPath(path)
+    painter.drawPixmap(0, 0, pixmap)
+
+    painter.end()
+    return rounded_pixmap
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    default_cover = create_default_cover((800, 800))
+    success = default_cover.save("../assets/default_cover.png")
+    print(success)
+    sys.exit(0)

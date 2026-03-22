@@ -1,13 +1,12 @@
 from PySide6.QtCore import Signal, Slot, Qt, QSize, QRectF, QRect
-from PySide6.QtGui import QFont, QPixmap, QPainter, QColor, QPen, QBrush
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QApplication, QLabel, QPushButton, QVBoxLayout, QSlider, \
-    QStyleOptionSlider, QStyle
-
-from constant import SongChanged, PlayMode
-from bak.songItem import SongItem, create_pixmap_from_bytes
+from PySide6.QtGui import QFont, QPixmap, QPainter, QColor, QBrush
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QApplication, QLabel, QPushButton, QVBoxLayout, QSlider
+from constant import SongChanged, PlayMode, COVER_SiZE
+from songList.songItem import SongItem
 from assets.svg import playing_icon, paused_icon, next_song_icon, prev_song_icon, play_list_icon, order_play_mode_icon, \
     random_play_mode_icon, repeat_play_mode_icon, immersive_mode_icon
 from styleTemplate.svgIconButton import SvgIconButton
+from theme import theme_manager
 from uitls.utils import create_svg_icon, ms_to_str
 
 
@@ -16,6 +15,7 @@ class ProgressSlider(QSlider):
 
     def __init__(self, orientation=Qt.Orientation.Horizontal, parent=None):
         super().__init__(orientation, parent)
+
         self.handle_pix = QPixmap("assets/guitar.svg")
 
         self.setFixedHeight(32)
@@ -26,9 +26,9 @@ class ProgressSlider(QSlider):
         self.groove_height = 4
         self.groove_border_color = QColor(255, 255, 255)
         self.groove_border_width = 1
-        self.groove_bg_color = QColor("#cbcfea")
+        self.groove_progress_color = None
+        self.groove_bg_color = None
         self.groove_radius = 2
-        self.groove_progress_color = QColor("#8186cc")
 
         self.groove_rect = QRect(
             self.rect().left(),
@@ -36,6 +36,14 @@ class ProgressSlider(QSlider):
             self.rect().width(),
             self.groove_height
         )
+
+        self.set_style()
+
+        theme_manager.themeChanged.connect(self.set_style)
+
+    def set_style(self):
+        self.groove_bg_color = QColor(theme_manager.current.bg_color_400)
+        self.groove_progress_color = QColor(theme_manager.current.bg_color_700)
 
     def resizeEvent(self, event, /):
         super().resizeEvent(event)
@@ -56,7 +64,10 @@ class ProgressSlider(QSlider):
         绘制滑槽
         """
         # 计算进度条的宽度
-        progress_ratio = (self.value() - self.minimum()) / (self.maximum() - self.minimum())
+        if self.maximum() == self.minimum():
+            progress_ratio = 0.0
+        else:
+            progress_ratio = (self.value() - self.minimum()) / (self.maximum() - self.minimum())
         progress_width = int(self.groove_rect.width() * progress_ratio)
         progress_rect = QRect(
             self.groove_rect.left(),
@@ -67,7 +78,8 @@ class ProgressSlider(QSlider):
 
         # 绘制滑槽边框和背景
         painter.save()
-        painter.setPen(QPen(self.groove_border_color, self.groove_border_width))  # 边框
+        painter.setPen(Qt.PenStyle.NoPen)
+        # painter.setPen(QPen(self.groove_border_color, self.groove_border_width))  # 边框
         painter.setBrush(QBrush(self.groove_bg_color))  # 背景
         painter.drawRoundedRect(
             self.groove_rect,
@@ -92,7 +104,7 @@ class ProgressSlider(QSlider):
         """
         handle_rect = QRect(
             progress_rect.right() - 16,
-            self.rect().top() + ((self.rect().height() -32) // 2),
+            self.rect().top() + ((self.rect().height() - 32) // 2),
             32, 32
         )
         center_x = handle_rect.center().x()
@@ -188,7 +200,12 @@ class BottomPanel(QWidget):
         # 当前播放歌曲封面
         self.current_song_cover = QLabel()
         self.current_song_cover.setFixedWidth(60)  # 设置封面为固定宽度
-        self.current_song_cover.setPixmap(create_pixmap_from_bytes('', (60, 60)))
+        self.current_song_cover.setPixmap(QPixmap("./assets/default_cover.png").scaled(
+            COVER_SiZE,
+            COVER_SiZE,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        ))
         # 当前歌曲标题
         current_song_info = QVBoxLayout()
         current_song_info.setContentsMargins(0, 20, 0, 20)
@@ -197,13 +214,13 @@ class BottomPanel(QWidget):
         self.current_song_title = QLabel("歌曲标题")
         self.current_song_title.setWordWrap(True)
         self.current_song_title.setFont(title_font)
-        self.current_song_title.setStyleSheet("color: #4a4c57")
+        self.current_song_title.setStyleSheet(f"color: {theme_manager.current.text_color_300}")
         self.current_song_artist = QLabel("歌手")
         self.current_song_artist.setWordWrap(True)
         artist_font = QFont("Microsoft YaHei")
         artist_font.setBold(True)
         self.current_song_artist.setFont(artist_font)
-        self.current_song_artist.setStyleSheet("color: #7b7b8b")
+        self.current_song_artist.setStyleSheet(f"color: {theme_manager.current.text_color_100}")
         current_song_info.addWidget(self.current_song_title)
         current_song_info.addWidget(self.current_song_artist)
         left_layout.addWidget(self.current_song_cover)
@@ -263,13 +280,15 @@ class BottomPanel(QWidget):
         self.setAutoFillBackground(True)
         self.setStyleSheet("""
             #bottomPanel{
-                background-color: #cbcfea;
+                background: transparent;
             }
         """)
 
+        theme_manager.themeChanged.connect(self.update)
+
     def set_current_song(self, song_item: SongItem):
         """设置当前播放音乐"""
-        self.current_song_cover.setPixmap(create_pixmap_from_bytes(song_item.cover_bytes, (60, 60)))
+        self.current_song_cover.setPixmap(song_item.cover)
         self.current_song_title.setText(song_item.title)
         self.current_song_artist.setText(song_item.artist)
 
@@ -320,12 +339,12 @@ class PlayPausedButton(QPushButton):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self._normal_color = "#9092dc"  # 默认颜色
-        self._hover_color = "#6467ce"  # 悬停颜色
+        self._normal_color = theme_manager.current.bg_color_600  # 默认颜色
+        self._hover_color = theme_manager.current.bg_color_700  # 悬停颜色
 
         # 播放图标和暂停图标
-        self.playing_icon = create_svg_icon(playing_icon, "#e5e5e5", 20)
-        self.paused_icon = create_svg_icon(paused_icon, "#e5e5e5", 30)
+        self.playing_icon = create_svg_icon(playing_icon, theme_manager.current.bg_color_0, 20)
+        self.paused_icon = create_svg_icon(paused_icon, theme_manager.current.bg_color_0, 30)
 
         # 设置按钮为圆形
         self.setFixedSize(50, 50)
@@ -356,30 +375,46 @@ class NextOrPrevButton(SvgIconButton):
     def __init__(self, btn_type: SongChanged, parent=None):
         super().__init__(parent)
 
-        if btn_type == SongChanged.NEXT:
+        self.btn_type = btn_type
+        self.set_icon()
+
+    def create_icon(self):
+        if self.btn_type == SongChanged.NEXT:
             self.btn_icon = create_svg_icon(next_song_icon, self.normal_color, 30)
             self.hover_icon = create_svg_icon(next_song_icon, self.hover_color, 30)
         else:
             self.btn_icon = create_svg_icon(prev_song_icon, self.normal_color, 30)
             self.hover_icon = create_svg_icon(prev_song_icon, self.hover_color, 30)
 
-        # 设置按钮为圆形
-        self.setIcon(self.btn_icon)
-
 
 class PlayListButton(SvgIconButton):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.set_icon()
 
+    def create_icon(self):
         self.btn_icon = create_svg_icon(play_list_icon, self.normal_color, 30)
         self.hover_icon = create_svg_icon(play_list_icon, self.hover_color, 30)
-        self.setIcon(self.btn_icon)
 
 
 class PlayModeButton(SvgIconButton):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self.setToolTip("顺序播放")
+
+        self.repeat_icon_hover = None
+        self.repeat_icon = None
+        self.random_icon_hover = None
+        self.random_icon = None
+        self.order_icon = None
+        self.order_icon_hover = None
+
+        self.btn_icon = self.order_icon
+        self.hover_icon = self.order_icon_hover
+        self.set_icon()
+
+    def create_icon(self):
         self.order_icon = create_svg_icon(order_play_mode_icon, self.normal_color, 30)
         self.order_icon_hover = create_svg_icon(order_play_mode_icon, self.hover_color, 30)
         self.random_icon = create_svg_icon(random_play_mode_icon, self.normal_color, 30)
@@ -389,8 +424,6 @@ class PlayModeButton(SvgIconButton):
 
         self.btn_icon = self.order_icon
         self.hover_icon = self.order_icon_hover
-        self.setIcon(self.btn_icon)
-        self.setToolTip("顺序播放")
 
     def update_display(self, current_mode: PlayMode):
         if current_mode == PlayMode.ORDER:
@@ -408,6 +441,7 @@ class PlayModeButton(SvgIconButton):
 
 
 class ImmersiveModeButton(SvgIconButton):
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -416,10 +450,11 @@ class ImmersiveModeButton(SvgIconButton):
         self.normal_size = (40, 40)
         self.pressed_size = (28, 28)
 
+        self.set_icon()
+
+    def create_icon(self):
         self.btn_icon = create_svg_icon(immersive_mode_icon, self.normal_color, 30)
         self.hover_icon = create_svg_icon(immersive_mode_icon, self.hover_color, 30)
-
-        self.setIcon(self.btn_icon)
 
 
 if __name__ == "__main__":

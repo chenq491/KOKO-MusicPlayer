@@ -1,64 +1,31 @@
-import time
-
 from PySide6.QtCore import QAbstractListModel, QModelIndex, Qt, QSize, QRect, Slot, Signal, QPropertyAnimation, \
     QEasingCurve
-from PySide6.QtGui import QPixmap, QFontMetrics, QColor, QPen, QPainterPath, QPainter, QFont
-from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QListView, QStyleOptionViewItem
-
+from PySide6.QtGui import QFontMetrics, QColor, QPen, QPainterPath, QPainter
+from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QListView
 from singleton.playListManager import PlayListManager
-from uitls.utils import load_default_cover
+from theme import theme_manager
 
 
 class MusicListModel(QAbstractListModel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._data = []  # 音乐信息列表
-        self._cover_size = None  # 封面尺寸
-        self._total_cover_pixmap = []
-        self._cover_pixmap = []
 
-    def load_data(self, cover_size):
+    def load_data(self):
         self._data = PlayListManager.get_song_list()
-        self._cover_size = cover_size
-        self._total_cover_pixmap = self.load_pixmap()
-        self._cover_pixmap = list(range(len(self._total_cover_pixmap)))
-
-    def load_pixmap(self):
-        cover_pixmap = []
-
-        default = load_default_cover((self._cover_size, self._cover_size), "#bdc3c7")
-
-        for song_item in self._data:
-            pixmap = QPixmap()
-            pixmap.loadFromData(song_item.cover_bytes)
-            if pixmap.isNull():
-                cover_pixmap.append(default)
-            else:
-                pixmap = pixmap.scaled(
-                    self._cover_size,
-                    self._cover_size,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                cover_pixmap.append(pixmap)
-
-        return cover_pixmap
 
     def search_filter(self, key="title", value=""):
         """搜索条件过滤"""
         self.beginResetModel()
         data_list = PlayListManager.get_song_list()
         self._data = []
-        self._cover_pixmap = []
         if value is None or value == "":
             self._data = data_list
-            self._cover_pixmap = list(range(len(self._total_cover_pixmap)))
         else:
-            for i in range(len(data_list)):
-                v = getattr(data_list[i], key)
+            for item in data_list:
+                v = getattr(item, key)
                 if value in v:
-                    self._data.append(data_list[i])
-                    self._cover_pixmap.append(i)
+                    self._data.append(item)
         self.endResetModel()
 
     def rowCount(self, /, parent=QModelIndex()):
@@ -71,7 +38,6 @@ class MusicListModel(QAbstractListModel):
 
         row = index.row()
         item = self._data[row]
-        cover = self._total_cover_pixmap[self._cover_pixmap[row]]
 
         if role == Qt.ItemDataRole.DisplayRole:
             # 默认文本显示
@@ -79,7 +45,7 @@ class MusicListModel(QAbstractListModel):
         elif role == Qt.ItemDataRole.DecorationRole:
             return None, None  # 返回图标
         elif role == Qt.ItemDataRole.UserRole:
-            return item, cover  # 返回完整数据对象
+            return item  # 返回完整数据对象
 
         return None
 
@@ -96,24 +62,27 @@ class MusicListItemDelegate(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         painter.save()  # 保存绘画状态，防止污染
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)  # 开启抗锯齿，边缘更平滑
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)  # 开启图像平滑变换
 
         # 绘制背景，选中和悬停状态
         if option.state & QStyle.StateFlag.State_Selected:  # 选中
-            painter.fillRect(option.rect, QColor("#adb2e9"))
+            painter.fillRect(option.rect, QColor(theme_manager.current.bg_color_500))
         elif option.state & QStyle.StateFlag.State_MouseOver:  # 悬停
-            painter.fillRect(option.rect, QColor("#d9dbf2"))
+            painter.fillRect(option.rect, QColor(theme_manager.current.bg_color_300))
         else:
-            painter.fillRect(option.rect, QColor("#e9ebfa"))
+            painter.fillRect(option.rect, QColor(theme_manager.current.bg_color_100))
 
-        text_color = QColor("#4c4e5d")
+        text_color = QColor(theme_manager.current.text_color_300)
 
         # 获取数据
-        data, pixmap = index.data(Qt.ItemDataRole.UserRole)
+        data = index.data(Qt.ItemDataRole.UserRole)
         idx = data.index
         title = data.title
         artist = data.artist
         album = data.album
         duration = data.duration
+        cover = data.cover
 
         """
         绘制索引
@@ -126,27 +95,33 @@ class MusicListItemDelegate(QStyledItemDelegate):
         )
         font = painter.font()
         font.setBold(True)
-        font.setPointSize(10)
-        painter.setFont(font)
-        painter.setPen(text_color)
-        painter.drawText(idx_rect, Qt.AlignmentFlag.AlignCenter, str(idx + 1))
+        if idx == PlayListManager.get_current_song_index():
+            font.setPointSize(12)
+            painter.setFont(font)
+            painter.setPen(text_color)
+            painter.drawText(idx_rect, Qt.AlignmentFlag.AlignCenter, "🎵")
+        else:
+            font.setPointSize(10)
+            painter.setFont(font)
+            painter.setPen(text_color)
+            painter.drawText(idx_rect, Qt.AlignmentFlag.AlignCenter, str(idx + 1))
 
         """
         绘制封面
         """
         cover_rect = QRect(
             # idx_rect.left(),
-            idx_rect.right(),            option.rect.top() + self.margin,
+            idx_rect.right(), option.rect.top() + self.margin,
             self.cover_size,
             self.cover_size
         )
         # 圆角
         path = QPainterPath()
         path.addRoundedRect(cover_rect.x(), cover_rect.y(), cover_rect.width(), cover_rect.height(), 10, 10)
-        painter.setClipPath(path)
-        painter.drawPixmap(cover_rect, pixmap)
+        # painter.setClipPath(path)
+        painter.drawPixmap(cover_rect, cover)
         # 边框
-        painter.setClipping(False)  # 关闭剪切，以便画边框在圆角轮廓上
+        # painter.setClipping(False)  # 关闭剪切，以便画边框在圆角轮廓上
         painter.setPen(QPen(QColor("#333"), 2))  # 黑色边框
         painter.setBrush(Qt.BrushStyle.NoBrush)  # 无填充
         painter.drawPath(path)  # 再次绘制路径作为边框
@@ -186,7 +161,7 @@ class MusicListItemDelegate(QStyledItemDelegate):
         font.setBold(False)
         font.setPointSize(10)
         painter.setFont(font)
-        painter.setPen(QColor("#7f8c8d"))
+        painter.setPen(theme_manager.current.text_color_100)
         elided_artist = fm.elidedText(artist, Qt.TextElideMode.ElideRight, artist_rect.width() - 10)
         painter.drawText(artist_rect, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft, elided_artist)
 
@@ -201,7 +176,7 @@ class MusicListItemDelegate(QStyledItemDelegate):
         )
         font.setBold(True)
         painter.setFont(font)
-        painter.setPen(QColor("#4c4e5d"))
+        painter.setPen(text_color)
         elided_album = fm.elidedText(album, Qt.TextElideMode.ElideRight, album_rect.width())
         painter.drawText(album_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, elided_album)
 
@@ -257,7 +232,7 @@ class MusicListView(QListView):
         self._animation.start()
 
     def load_data(self):
-        self.model.load_data(self.cover_size)
+        self.model.load_data()
         self.setItemDelegate(MusicListItemDelegate(self.cover_size))
 
     def set_current(self, idx: int):
@@ -296,5 +271,5 @@ class MusicListView(QListView):
 
     @Slot()
     def on_item_double_clicked(self, idx):
-        data, _ = idx.data(Qt.ItemDataRole.UserRole)
+        data = idx.data(Qt.ItemDataRole.UserRole)
         self.itemDoubleClicked.emit(data.index)

@@ -1,29 +1,11 @@
-import io
 import numpy as np
 from PySide6.QtCore import Qt, QTimer, Slot
 from PySide6.QtGui import QPainter, QColor, QLinearGradient, QPixmap, QImage
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGraphicsBlurEffect
 
-from bak.songItem import SongItem, create_pixmap_from_bytes
+from songList.songItem import SongItem
 from uitls.audioLoader import AudioFFMLoader
 from uitls.utils import fft_from_chunk
-from PIL import Image, ImageFilter
-
-
-def blur_image(image_bytes, radius=30):
-    if image_bytes is None:
-        pixmap = QPixmap(60, 60)
-        pixmap.fill(Qt.GlobalColor.gray)
-        return pixmap
-    else:
-        image = Image.open(io.BytesIO(image_bytes))
-        if image.mode != "RGBA":
-            image = image.convert("RGBA")
-
-        blurred = image.filter(ImageFilter.GaussianBlur(radius))
-        qim = QImage(blurred.tobytes(), blurred.width, blurred.height, QImage.Format.Format_RGBA8888)
-        pixmap = QPixmap.fromImage(qim)
-        return pixmap
 
 
 class ImmersiveModeWidget(QWidget):
@@ -37,33 +19,24 @@ class ImmersiveModeWidget(QWidget):
 
         # self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        # self.setObjectName("ImmersiveModeWidget")
-        # self.setStyleSheet("""
-        #     #ImmersiveModeWidget{
-        #         border: 2px solid #5c9ded;
-        #         border-radius: 10px;
-        #         background-color: white;
-        #     }
-        # """)
-
         self.loader_thread = AudioFFMLoader()
         self.loader_thread.dataLoaded.connect(self.on_data_loaded)
 
-        # =========背景层===========
+        """
+        背景层
+        """
+        # 是否初始化背景，因为开始时无法获得正确的rect()
         self._background_initialized = False
+        # 背景标签，展示背景
         self.bg_label = QLabel(self)
         self.bg_label.setScaledContents(False)  # 自动缩放
-        # 应用模糊效果
-        blur_effect = QGraphicsBlurEffect()
-        blur_effect.setBlurRadius(200)  # 模糊半径（越大越模糊）
-        blur_effect.setBlurHints(QGraphicsBlurEffect.BlurHint.QualityHint)
-        self.bg_label.setGraphicsEffect(blur_effect)
         self.bg_pixmap = QPixmap()
 
-        # ==========内容层===========
+        """
+        内容层
+        """
         self.content_widget = QWidget()
         self.content_widget.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-
         # 频谱控件
         self.spectrum_widget = SpectrumWidget(self)
         # 封面控件
@@ -81,9 +54,13 @@ class ImmersiveModeWidget(QWidget):
         main_layout.setSpacing(0)
         main_layout.addWidget(self.content_widget)
 
+    def paintEvent(self, event, /):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(255, 0, 0, 50))
+
     def resizeEvent(self, event, /):
         # 每次 resize 都更新背景尺寸
-
         self.bg_label.resize(self.size())
         self.bg_pixmap = self.bg_pixmap.scaled(
             self.bg_label.size(),
@@ -91,7 +68,7 @@ class ImmersiveModeWidget(QWidget):
             Qt.TransformationMode.SmoothTransformation
         )
         self.bg_label.setPixmap(self.bg_pixmap)
-        self.content_widget.resize(self.size())
+        # self.content_widget.resize(self.size())
         super().resizeEvent(event)
 
     def showEvent(self, event, /):
@@ -106,10 +83,13 @@ class ImmersiveModeWidget(QWidget):
 
     def load_audio(self, song_item: SongItem):
         """加载音频数据"""
+        self.loader_thread.set_item(song_item)
+        self.loader_thread.start()
 
-        # TODO 可能需要优化数据操作
-        self.cover_display_widget.cover.setPixmap(create_pixmap_from_bytes(song_item.cover_bytes, (300, 300)))
-        self.bg_pixmap = blur_image(song_item.cover_bytes)
+    @Slot()
+    def on_data_loaded(self, result: dict):
+        self.cover_display_widget.cover.setPixmap(result["cover"])
+        self.bg_pixmap = result["bg"]
         if self._background_initialized:
             self.bg_pixmap = self.bg_pixmap.scaled(
                 self.bg_label.size(),
@@ -118,11 +98,6 @@ class ImmersiveModeWidget(QWidget):
             )
             self.bg_label.setPixmap(self.bg_pixmap)
 
-        self.loader_thread.set_item(song_item)
-        self.loader_thread.start()
-
-    @Slot()
-    def on_data_loaded(self, result: dict):
         self.audio = result["audio"]
         self.sample_rate = result["sample_rate"]
         self.pos = 0

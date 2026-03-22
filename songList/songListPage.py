@@ -3,6 +3,7 @@ from PySide6.QtGui import QPainter, QFont, QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton
 
 from singleton.playListManager import PlayListManager
+from theme import theme_manager, Theme
 from .songListView import MusicListView
 from styleTemplate.svgIconButton import SvgIconButton
 from assets.svg import refresh_icon, shuffle_icon
@@ -104,7 +105,7 @@ class ListTitle(QWidget):
         font.setPointSize(10)
         font.setBold(True)
         painter.setFont(font)
-        painter.setPen("#4c4e5d")
+        painter.setPen(theme_manager.current.text_color_300)
 
         w = rect.left()
         idx_width = int(rect.width() * 0.04)
@@ -178,51 +179,52 @@ class SearchBox(QWidget):
         main_layout.addWidget(self.search_edit)
 
         self.setFixedHeight(30)
+        theme_manager.themeChanged.connect(self.init_style)
 
     def init_style(self):
         """设置样式表，核心美化逻辑"""
-        self.setStyleSheet("""
+        self.setStyleSheet(f"""
             /* 搜索框容器 */
-            #SearchBox {
-                background: #b6b8e2;
+            #SearchBox {{
+                background: {theme_manager.current.bg_color_200 if theme_manager.current == Theme.DARK_THEME.value else theme_manager.current.bg_color_300};
                 border-radius: 5px;  /* 圆角（高度的一半）*/
-                border: 1px solid #6e74c4;
-            }
+                border: 1px solid {theme_manager.current.bg_color_400};
+            }}
 
             /* 输入框基础样式 */
-            #SearchLineEdit {
+            #SearchLineEdit {{
                 background: transparent;  /* 透明背景，继承容器渐变 */
-                color: #212529;
+                color: {theme_manager.current.text_color_300};
                 border: none;
                 outline: none;
-            }
+            }}
 
             /* 输入框聚焦效果 */
-            #SearchLineEdit:focus {
-                color: #4a4c57;
-            }
+            #SearchLineEdit:focus {{
+                color: {theme_manager.current.text_color_300};
+            }}
 
             /* 输入框占位符文字样式 */
-            #SearchLineEdit::placeholder {
-                color: #adb5bd;
+            #SearchLineEdit::placeholder {{
+                color: {theme_manager.current.text_color_200};
                 font-style: italic;
-            }
+            }}
 
             /* 搜索按钮默认样式 */
-            #SearchButton {
+            #SearchButton {{
                 border-radius: 5px;
                 background: transparent;
-            }
+            }}
 
             /* 按钮hover效果 */
-            #SearchButton:hover {
-                background: #9295d3;
-            }
+            #SearchButton:hover {{
+                background: {theme_manager.current.bg_color_500};
+            }}
 
             /* 按钮按下效果 */
-            #SearchButton:pressed {
-                background: #6e74c4;
-            }
+            #SearchButton:pressed {{
+                background: {theme_manager.current.bg_color_600};
+            }}
         """)
 
     def on_text_emit(self):

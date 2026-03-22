@@ -107,17 +107,26 @@ class CloseButton(SvgIconButton):
         self.normal_size = (40, 40)
         self.pressed_size = (12, 12)
 
+        self.set_icon()
+
+    def create_icon(self):
         self.btn_icon = create_svg_icon(close_icon, self.normal_color, 15)
         self.hover_icon = create_svg_icon(close_icon, self.hover_color, 15)
-        self.setIcon(self.btn_icon)
 
 
 class MaxButton(SvgIconButton):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.window_button = None
+        self.window_button_hover = None
+        self.fullscreen_button_hover = None
+        self.fullscreen_button = None
         self.normal_size = (40, 40)
         self.pressed_size = (15, 15)
 
+        self.set_icon()
+
+    def create_icon(self):
         self.fullscreen_button = create_svg_icon(fullscreen_icon, self.normal_color, 18)
         self.fullscreen_button_hover = create_svg_icon(fullscreen_icon, self.hover_color, 18)
 
@@ -126,7 +135,6 @@ class MaxButton(SvgIconButton):
 
         self.btn_icon = self.fullscreen_button
         self.hover_icon = self.fullscreen_button_hover
-        self.setIcon(self.btn_icon)
 
     def update_display(self, is_fullscreen: bool):
         if is_fullscreen:
@@ -144,10 +152,12 @@ class MinButton(SvgIconButton):
         self.normal_size = (40, 40)
         self.pressed_size = (12, 12)
 
+        self.set_icon()
+
+    def create_icon(self):
         self.btn_icon = create_svg_icon(min_icon, self.normal_color, 15)
         self.hover_icon = create_svg_icon(min_icon, self.hover_color, 15)
 
-        self.setIcon(self.btn_icon)
 
 class ConfigButton(SvgIconButton):
     def __init__(self, parent=None):
@@ -158,10 +168,12 @@ class ConfigButton(SvgIconButton):
         self.normal_size = (40, 40)
         self.pressed_size = (18, 18)
 
+        self.set_icon()
+
+    def create_icon(self):
         self.btn_icon = create_svg_icon(config_icon, self.normal_color, 20)
         self.hover_icon = create_svg_icon(config_icon, self.hover_color, 20)
 
-        self.setIcon(self.btn_icon)
 
 class HomeButton(SvgIconButton):
     def __init__(self, parent=None):
@@ -172,7 +184,8 @@ class HomeButton(SvgIconButton):
         self.normal_size = (40, 40)
         self.pressed_size = (18, 18)
 
+        self.set_icon()
+
+    def create_icon(self):
         self.btn_icon = create_svg_icon(home_icon, self.normal_color, 20)
         self.hover_icon = create_svg_icon(home_icon, self.hover_color, 20)
-
-        self.setIcon(self.btn_icon)

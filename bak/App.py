@@ -12,7 +12,7 @@ from singleton.config import Config
 from constant import PlayMode, MUSIC_SUFFIX, SongChanged
 from immersiveModePage import ImmersiveModeWidget
 from components.message import show_message
-from settingPage import SettingsWidget
+from settingPage import SettingPage
 from songListPage import SongListPage
 from bottomPanel import BottomPanel
 from progressDisplay import ProgressDisplay
@@ -55,7 +55,7 @@ class MusicPlayer(QMainWindow):
         self.song_list_widget = SongListPage(self)
 
         # 设置页面
-        self.settings_widget = SettingsWidget(self)
+        self.settings_widget = SettingPage(self)
 
         # 沉浸模式页面
         self.immersive_mode_widget = ImmersiveModeWidget(self)

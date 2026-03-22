@@ -11,9 +11,10 @@ from singleton.config import Config
 from constant import PlayMode, SongChanged
 from immersiveModePage import ImmersiveModeWidget
 from components.message import show_message
-from settingPage import SettingsWidget
+from settingPage import SettingPage
 from bottomPanel import BottomPanel, ProgressDisplay
 from songList.songListPage import SongListPage
+from theme import theme_manager
 from titleBar import TitleBar
 
 
@@ -45,7 +46,7 @@ class MusicPlayer(QMainWindow):
         self.song_list_page = SongListPage(self)
 
         # 设置页面
-        self.settings_widget = SettingsWidget(self)
+        self.settings_widget = SettingPage(self)
 
         # 沉浸模式页面
         self.immersive_mode_widget = ImmersiveModeWidget(self)
@@ -84,21 +85,17 @@ class MusicPlayer(QMainWindow):
         self.playlist_panel.update_geometry()
 
         # 样式
+        self.bg_pixmap = None
         self.setObjectName("mainWindow")
-        self.setStyleSheet("""
-                            #mainWindow{
-                                background-color: #dfe0f5;
-                                border: none;
-                            }
-                        """)
 
         self.bind()
         self.load_data()
+        self.set_style()
 
     def bind(self):
         """绑定事件"""
-        self.title_bar.pageConfig.connect(lambda: self.stacked_widget.setCurrentIndex(1))  # 切换到设置页面
-        self.title_bar.pageHome.connect(lambda: self.stacked_widget.setCurrentIndex(0))  # 切换到主页页面
+        self.title_bar.pageConfig.connect(lambda :self.on_page_changed(1))  # 切换到设置页面
+        self.title_bar.pageHome.connect(lambda: self.on_page_changed(0))  # 切换到主页页面
 
         self.media_player.errorOccurred.connect(self.on_media_player_error)  # 播放失败
         self.media_player.playbackStateChanged.connect(self.on_playback_state_changed)  # 播放状态改变
@@ -115,9 +112,19 @@ class MusicPlayer(QMainWindow):
         self.bottom_panel.playOrPausedButtonClicked.connect(self.on_play_or_paused)  # 播放/暂停歌曲
         self.bottom_panel.platModeChanged.connect(self.on_play_mode_changed)  # 播放模式切换
         self.bottom_panel.playlistButtonClicked.connect(self.playlist_panel.show_or_hidden)  # 点击播放列表按钮
-        self.bottom_panel.pageImmersiveMode.connect(lambda: self.stacked_widget.setCurrentIndex(2))
+        self.bottom_panel.pageImmersiveMode.connect(lambda: self.on_page_changed(2))
 
         self.playlist_panel.selectMusic.connect(self.on_playlist_select_music)  # 播放列表切换歌曲
+
+        theme_manager.themeChanged.connect(self.set_style)
+
+    def set_style(self):
+        self.setStyleSheet(f"""
+            #mainWindow{{
+                background-color: {theme_manager.current.bg_color_200};
+                border: none;
+            }}
+        """)
 
     def load_data(self):
         """加载设置数据"""
@@ -179,7 +186,6 @@ class MusicPlayer(QMainWindow):
 
         self.song_list_page.show_music_list()  # 0.7s
 
-
     def close_smooth(self):
         """平滑关闭（淡出）"""
         self.animation = QPropertyAnimation(self, b"windowOpacity")
@@ -201,6 +207,12 @@ class MusicPlayer(QMainWindow):
                 'play_mode': self.bottom_panel.get_current_play_mode()
             }
             Config.save_value("play_progress", play_progress)
+
+    def paintEvent(self, event, /):
+        super().paintEvent(event)
+
+        # 绘制指定背景
+
 
     @Slot()
     def on_music_dir_selected(self, music_dir):
@@ -303,6 +315,8 @@ class MusicPlayer(QMainWindow):
     def on_page_changed(self, page_index: int):
         """页面切换"""
         self.stacked_widget.setCurrentIndex(page_index)
+        if page_index == 2:
+            pass
 
     @Slot()
     def on_volume_changed(self, new_volume: float):
@@ -312,10 +326,11 @@ class MusicPlayer(QMainWindow):
 
 if __name__ == "__main__":
     # QApplication.setStyle("Windows")
+    app = QApplication(sys.argv)
+
     Config.init()  # 加载配置
     PlayListManager.init()  # 初始化播放管理器
 
-    app = QApplication(sys.argv)
     player = MusicPlayer()
     player.show()
     sys.exit(app.exec())
