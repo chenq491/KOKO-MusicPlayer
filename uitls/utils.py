@@ -6,8 +6,10 @@ import numpy as np
 from PySide6.QtCore import QByteArray, Qt, QRect
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont, QPainterPath
 from PySide6.QtSvg import QSvgRenderer
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QLabel
 from scipy.fft import rfft
+
+from theme import theme_manager
 
 
 def ms_to_str(ms: int) -> str:
@@ -203,6 +205,14 @@ def draw_rounded_pixmap(pixmap, radius=10):
     painter.end()
     return rounded_pixmap
 
+
+def create_style_label(text, font_size=13, bold=True, color=theme_manager.current.text_color_300):
+    label = QLabel(text)
+    font = QFont("Microsoft YaHei", font_size)
+    font.setBold(bold)
+    label.setFont(font)
+    label.setStyleSheet(f"color: {color}")
+    return label
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

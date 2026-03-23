@@ -1,8 +1,8 @@
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtGui import QCloseEvent, QPainter, QColor, QPixmap
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QStackedWidget
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QStackedWidget, QLabel
 )
-from PySide6.QtCore import Slot, QUrl, QTimer, Qt, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import Slot, QUrl, QTimer, Qt, QPropertyAnimation, QEasingCurve, QRect
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 import sys
 from singleton.playListManager import PlayListManager
@@ -12,7 +12,7 @@ from constant import PlayMode, SongChanged
 from immersiveModePage import ImmersiveModeWidget
 from components.message import show_message
 from settingPage import SettingPage
-from bottomPanel import BottomPanel, ProgressDisplay
+from bottomPanel import BottomPanel
 from songList.songListPage import SongListPage
 from theme import theme_manager
 from titleBar import TitleBar
@@ -57,9 +57,6 @@ class MusicPlayer(QMainWindow):
         self.stacked_widget.addWidget(self.settings_widget)
         self.stacked_widget.addWidget(self.immersive_mode_widget)
 
-        # 进度展示
-        self.progress_display = ProgressDisplay(self)
-
         # 底部面板
         self.bottom_panel = BottomPanel(self)
 
@@ -69,7 +66,6 @@ class MusicPlayer(QMainWindow):
         center_layout.setSpacing(0)
         center_layout.addWidget(self.title_bar, 0)
         center_layout.addWidget(self.stacked_widget, 14)
-        center_layout.addWidget(self.progress_display, 0)
         center_layout.addWidget(self.bottom_panel, 0)
         center_widget.setLayout(center_layout)
 
@@ -85,16 +81,21 @@ class MusicPlayer(QMainWindow):
         self.playlist_panel.update_geometry()
 
         # 样式
-        self.bg_pixmap = None
+        self.bg_pixmap = QPixmap()
         self.setObjectName("mainWindow")
 
         self.bind()
         self.load_data()
         self.set_style()
 
+        self.handle_label = QLabel(self)
+        self.handle_label.setPixmap(QPixmap("./assets/guitar.svg"))
+        self.handle_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.bp_rect = QRect(0, 0, 0, 0)
+
     def bind(self):
         """绑定事件"""
-        self.title_bar.pageConfig.connect(lambda :self.on_page_changed(1))  # 切换到设置页面
+        self.title_bar.pageConfig.connect(lambda: self.on_page_changed(1))  # 切换到设置页面
         self.title_bar.pageHome.connect(lambda: self.on_page_changed(0))  # 切换到主页页面
 
         self.media_player.errorOccurred.connect(self.on_media_player_error)  # 播放失败
@@ -106,13 +107,16 @@ class MusicPlayer(QMainWindow):
         self.settings_widget.musicDirSelected.connect(self.on_music_dir_selected)  # 选择音乐文件夹
         self.settings_widget.volumeChanged.connect(self.on_volume_changed)  # 音量改变
 
-        self.progress_display.songProgressChanged.connect(self.on_song_progress_changed)  # 歌曲进度条改变
+        self.immersive_mode_widget.backgroundChanged.connect(self.on_background_changed)
 
+        self.bottom_panel.songProgressChanged.connect(self.on_song_progress_changed)  # 歌曲进度条改变
         self.bottom_panel.songChangedButtonClicked.connect(self.on_song_changed_button_clicked)  # 切换歌曲
         self.bottom_panel.playOrPausedButtonClicked.connect(self.on_play_or_paused)  # 播放/暂停歌曲
         self.bottom_panel.platModeChanged.connect(self.on_play_mode_changed)  # 播放模式切换
         self.bottom_panel.playlistButtonClicked.connect(self.playlist_panel.show_or_hidden)  # 点击播放列表按钮
         self.bottom_panel.pageImmersiveMode.connect(lambda: self.on_page_changed(2))
+        self.bottom_panel.location.connect(self.on_song_list_location)
+        self.bottom_panel.rectChanged.connect(self.on_bottom_panel_rect_changed)
 
         self.playlist_panel.selectMusic.connect(self.on_playlist_select_music)  # 播放列表切换歌曲
 
@@ -121,7 +125,6 @@ class MusicPlayer(QMainWindow):
     def set_style(self):
         self.setStyleSheet(f"""
             #mainWindow{{
-                background-color: {theme_manager.current.bg_color_200};
                 border: none;
             }}
         """)
@@ -153,7 +156,7 @@ class MusicPlayer(QMainWindow):
         self.playlist_panel.set_current()
 
         # 更新底部面板
-        self.progress_display.reset_progress()
+        self.bottom_panel.reset_progress()
         self.bottom_panel.set_current_song(song_item)
 
         # 播放歌曲
@@ -169,8 +172,7 @@ class MusicPlayer(QMainWindow):
         position = self.media_player.position()  # 当前歌曲进度
 
         # 歌曲进度视图更新
-        self.progress_display.update_progress(position, duration)
-
+        self.bottom_panel.update_progress(position, duration)
         # 沉浸模式频谱图更新
         self.immersive_mode_widget.update_spectrum_from_position(position)
 
@@ -210,9 +212,20 @@ class MusicPlayer(QMainWindow):
 
     def paintEvent(self, event, /):
         super().paintEvent(event)
-
-        # 绘制指定背景
-
+        """
+        绘制背景
+        """
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(theme_manager.current.bg_color_200))
+        if not self.bg_pixmap.isNull():
+            self.bg_pixmap = self.bg_pixmap.scaled(
+                self.size(),
+                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            x = (self.width() - self.bg_pixmap.width()) // 2
+            y = (self.height() - self.bg_pixmap.height()) // 2
+            painter.drawPixmap(x, y, self.bg_pixmap)
 
     @Slot()
     def on_music_dir_selected(self, music_dir):
@@ -248,11 +261,13 @@ class MusicPlayer(QMainWindow):
         :param state: 歌曲状态
         """
         if state == QMediaPlayer.PlaybackState.PlayingState:
-            self.timer.start(100)  # 100ms更新一次
+            self.timer.start(50)  # 100ms更新一次
             self.bottom_panel.update_display(True)
+            self.immersive_mode_widget.start()
         elif state == QMediaPlayer.PlaybackState.PausedState:
             self.timer.stop()
             self.bottom_panel.update_display(False)
+            self.immersive_mode_widget.stop()
         elif state == QMediaPlayer.PlaybackState.StoppedState:
             if self.song_click_changed:
                 self.song_click_changed = False
@@ -266,6 +281,11 @@ class MusicPlayer(QMainWindow):
     def on_timer_timeout(self):
         """歌曲更新"""
         self.update_music_progress()
+        self.handle_label.setGeometry(QRect(
+            int(self.bottom_panel.progress_slider.get_ratio() * self.width()) - 16,
+            self.bp_rect.top() - 11,
+            32, 32
+        ))
 
     @Slot()
     def on_play_or_paused(self):
@@ -314,15 +334,36 @@ class MusicPlayer(QMainWindow):
     @Slot()
     def on_page_changed(self, page_index: int):
         """页面切换"""
+        current_index = self.stacked_widget.currentIndex()
         self.stacked_widget.setCurrentIndex(page_index)
-        if page_index == 2:
-            pass
+        if current_index == 2 and page_index != 2:
+            self.bg_pixmap = QPixmap()
+            self.update(self.rect())
+        elif current_index != 2 and page_index == 2:
+            self.update(self.rect())
 
     @Slot()
     def on_volume_changed(self, new_volume: float):
         """音量改变"""
         self.audio_output.setVolume(new_volume)
 
+    @Slot()
+    def on_background_changed(self, bg: QPixmap):
+        if self.stacked_widget.currentIndex() == 2:
+            self.bg_pixmap = bg
+            self.update(self.rect())
+
+    @Slot()
+    def on_song_list_location(self):
+        if self.stacked_widget.currentIndex() == 0:
+            self.song_list_page.location()
+
+    @Slot()
+    def on_bottom_panel_rect_changed(self):
+        self.bp_rect = QRect(
+            self.bottom_panel.mapTo(self, self.bottom_panel.rect().topLeft()),
+            self.bottom_panel.size()
+        )
 
 if __name__ == "__main__":
     # QApplication.setStyle("Windows")

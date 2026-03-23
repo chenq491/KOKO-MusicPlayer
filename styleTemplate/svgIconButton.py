@@ -7,6 +7,7 @@ from theme import theme_manager
 class SvgIconButton(QPushButton):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
 
         self.normal_size = (50, 50)
         self.pressed_size = (27, 27)
@@ -21,7 +22,6 @@ class SvgIconButton(QPushButton):
         self.setFixedSize(*self.normal_size)
         self.setStyleSheet("""
                         QPushButton{
-                            background: transparent;
                             border: none;
                         }
                     """)

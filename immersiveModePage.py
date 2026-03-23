@@ -1,14 +1,15 @@
 import numpy as np
-from PySide6.QtCore import Qt, QTimer, Slot
-from PySide6.QtGui import QPainter, QColor, QLinearGradient, QPixmap, QImage
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGraphicsBlurEffect
-
+from PySide6.QtCore import Qt, QTimer, Slot, Signal
+from PySide6.QtGui import QPainter, QColor, QLinearGradient, QPixmap
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from songList.songItem import SongItem
 from uitls.audioLoader import AudioFFMLoader
 from uitls.utils import fft_from_chunk
 
 
 class ImmersiveModeWidget(QWidget):
+    backgroundChanged = Signal(QPixmap)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         # 音乐ffm数据
@@ -54,11 +55,6 @@ class ImmersiveModeWidget(QWidget):
         main_layout.setSpacing(0)
         main_layout.addWidget(self.content_widget)
 
-    def paintEvent(self, event, /):
-        super().paintEvent(event)
-        painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor(255, 0, 0, 50))
-
     def resizeEvent(self, event, /):
         # 每次 resize 都更新背景尺寸
         self.bg_label.resize(self.size())
@@ -68,6 +64,7 @@ class ImmersiveModeWidget(QWidget):
             Qt.TransformationMode.SmoothTransformation
         )
         self.bg_label.setPixmap(self.bg_pixmap)
+
         # self.content_widget.resize(self.size())
         super().resizeEvent(event)
 
@@ -77,7 +74,8 @@ class ImmersiveModeWidget(QWidget):
             self.bg_label.setGeometry(self.rect())
             self._background_initialized = True
 
-        self.bg_label.setPixmap(self.bg_pixmap)
+        # self.bg_label.setPixmap(self.bg_pixmap)
+        self.backgroundChanged.emit(self.bg_pixmap)
 
         super().showEvent(event)
 
@@ -88,6 +86,7 @@ class ImmersiveModeWidget(QWidget):
 
     @Slot()
     def on_data_loaded(self, result: dict):
+        self.backgroundChanged.emit(result["bg"])
         self.cover_display_widget.cover.setPixmap(result["cover"])
         self.bg_pixmap = result["bg"]
         if self._background_initialized:
@@ -124,6 +123,12 @@ class ImmersiveModeWidget(QWidget):
 
         binned = fft_from_chunk(chunk, self.spectrum_widget.column_num)
         self.spectrum_widget.update_spectrum(binned)
+
+    def stop(self):
+        self.spectrum_widget.timer.stop()
+
+    def start(self):
+        self.spectrum_widget.timer.start(20)
 
 
 class CoverDisplayWidget(QWidget):
@@ -177,7 +182,6 @@ class SpectrumWidget(QWidget):
         self.update()  # 触发重绘
 
     def paintEvent(self, event):
-
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)  # 启用抗锯齿
         painter.setPen(Qt.PenStyle.NoPen)  # 只填充颜色，不绘制边框

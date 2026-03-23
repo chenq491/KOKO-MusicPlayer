@@ -16,7 +16,10 @@ class MusicListModel(QAbstractListModel):
 
     def search_filter(self, key="title", value=""):
         """搜索条件过滤"""
+        # 提示重置数据，用于及时重绘
         self.beginResetModel()
+
+        # 更新数据
         data_list = PlayListManager.get_song_list()
         self._data = []
         if value is None or value == "":
@@ -26,6 +29,8 @@ class MusicListModel(QAbstractListModel):
                 v = getattr(item, key)
                 if value in v:
                     self._data.append(item)
+
+        # 提示重置数据完成
         self.endResetModel()
 
     def rowCount(self, /, parent=QModelIndex()):
@@ -232,23 +237,31 @@ class MusicListView(QListView):
         self._animation.start()
 
     def load_data(self):
+        """加载列表数据"""
         self.model.load_data()
         self.setItemDelegate(MusicListItemDelegate(self.cover_size))
 
-    def set_current(self, idx: int):
-        target = self.model.index(idx)
+    def set_current(self):
+        """高亮显示当前音乐"""
+        target = self.model.index(PlayListManager.get_current_song_index())
         self.setCurrentIndex(target)
 
     def get_current(self):
+        """获取当前音乐"""
         idx = self.currentIndex()
         data = self.model.data(idx, Qt.ItemDataRole.UserRole)
         return data
 
     def search(self, value: str):
+        """搜索功能实现"""
         self.model.search_filter(value=value)
-        # self.setItemDelegate(MusicListItemDelegate(self.cover_size))
+
+    def scroll_to_current(self):
+        """跳转到当前音乐"""
+        self.scrollTo(self.model.index(PlayListManager.get_current_song_index()), QListView.ScrollHint.PositionAtCenter)
 
     def wheelEvent(self, event):
+        """实现平滑滚动"""
         event.accept()  # 消费事件，阻止默认滚动
 
         delta = event.angleDelta().y()  # 鼠标滚动量，单位是1/8度
@@ -266,10 +279,8 @@ class MusicListView(QListView):
 
         self._animate_scroll(target_value)
 
-    def mouseMoveEvent(self, event, /):
-        super().mouseMoveEvent(event)
-
     @Slot()
     def on_item_double_clicked(self, idx):
+        """双击音乐事件，播放歌曲"""
         data = idx.data(Qt.ItemDataRole.UserRole)
         self.itemDoubleClicked.emit(data.index)

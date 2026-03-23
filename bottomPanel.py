@@ -4,10 +4,10 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QApplication, QLabel, QPushB
 from constant import SongChanged, PlayMode, COVER_SiZE
 from songList.songItem import SongItem
 from assets.svg import playing_icon, paused_icon, next_song_icon, prev_song_icon, play_list_icon, order_play_mode_icon, \
-    random_play_mode_icon, repeat_play_mode_icon, immersive_mode_icon
+    random_play_mode_icon, repeat_play_mode_icon, immersive_mode_icon, location_icon
 from styleTemplate.svgIconButton import SvgIconButton
 from theme import theme_manager
-from uitls.utils import create_svg_icon, ms_to_str
+from uitls.utils import create_svg_icon, ms_to_str, create_style_label
 
 
 class ProgressSlider(QSlider):
@@ -18,10 +18,11 @@ class ProgressSlider(QSlider):
 
         self.handle_pix = QPixmap("assets/guitar.svg")
 
-        self.setFixedHeight(32)
+        self.setFixedHeight(10)
 
         self.setMouseTracking(True)  # 开启鼠标追踪以支持 hover 效果
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)  # 鼠标样式变化
 
         self.groove_height = 4
         self.groove_border_color = QColor(255, 255, 255)
@@ -54,21 +55,28 @@ class ProgressSlider(QSlider):
             self.groove_height
         )
 
+    def get_ratio(self):
+        # 计算进度条的宽度
+        if self.maximum() == self.minimum():
+            progress_ratio = 0.0
+        else:
+            progress_ratio = (self.value() - self.minimum()) / (self.maximum() - self.minimum())
+        return progress_ratio
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        painter.setClipping(False)
 
         # TODO 这里可以选择性地重绘背景，达到性能优化
         """
         绘制滑槽
         """
         # 计算进度条的宽度
-        if self.maximum() == self.minimum():
-            progress_ratio = 0.0
-        else:
-            progress_ratio = (self.value() - self.minimum()) / (self.maximum() - self.minimum())
-        progress_width = int(self.groove_rect.width() * progress_ratio)
+        # if self.maximum() == self.minimum():
+        #     progress_ratio = 0.0
+        # else:
+        #     progress_ratio = (self.value() - self.minimum()) / (self.maximum() - self.minimum())
+        progress_width = int(self.groove_rect.width() * self.get_ratio())
         progress_rect = QRect(
             self.groove_rect.left(),
             self.groove_rect.top(),
@@ -111,6 +119,7 @@ class ProgressSlider(QSlider):
         center_y = handle_rect.center().y()
 
         painter.save()
+        painter.setClipping(False)
         painter.translate(center_x, center_y)
         if self.underMouse():  # 鼠标悬浮
             painter.rotate(15)
@@ -119,7 +128,7 @@ class ProgressSlider(QSlider):
         w = self.handle_pix.width()
         h = self.handle_pix.height()
         target_rect = QRectF(-w / 2, -h / 2, w, h)
-        painter.drawPixmap(target_rect.toRect(), self.handle_pix)
+        # painter.drawPixmap(target_rect.toRect(), self.handle_pix)
         painter.restore()
 
     def mousePressEvent(self, event):
@@ -128,60 +137,15 @@ class ProgressSlider(QSlider):
         super().mousePressEvent(event)
 
 
-class ProgressDisplay(QWidget):
-    songProgressChanged = Signal(int)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        self.setFixedHeight(32)
-
-        # 歌曲进度条
-        self.song_progress_slider = ProgressSlider(Qt.Orientation.Horizontal)
-        self.song_progress_slider.valueChanged.connect(self.on_song_progress_slider_changed)
-
-        # 歌曲进度数字
-        self.song_progress_label = QLabel("00:00 / 00:00")
-
-        main_layout = QHBoxLayout()
-        main_layout.setContentsMargins(0, 0, 0, 0)
-
-        main_layout.addWidget(self.song_progress_slider)
-        main_layout.addWidget(self.song_progress_label)
-
-        self.setLayout(main_layout)
-
-    def reset_progress(self):
-        """重置进度"""
-        self.song_progress_slider.setValue(0)
-        self.song_progress_slider.setEnabled(True)
-        self.song_progress_label.setText("00:00 / 00:00")
-
-    def update_progress(self, position, duration):
-        """更新进度"""
-        if duration < 0:
-            return
-
-        # 更新进度条
-        self.song_progress_slider.blockSignals(True)  # 阻塞信号
-        self.song_progress_slider.setMaximum(duration)
-        self.song_progress_slider.setValue(position)
-        self.song_progress_slider.blockSignals(False)
-
-        # 更新时间标签
-        self.song_progress_label.setText(f"{ms_to_str(position)} / {ms_to_str(duration)}")
-
-    def on_song_progress_slider_changed(self, value):
-        """歌曲进度条值改变"""
-        self.songProgressChanged.emit(value)
-
-
 class BottomPanel(QWidget):
     playlistButtonClicked = Signal()
     songChangedButtonClicked = Signal(SongChanged)
     playOrPausedButtonClicked = Signal()
     platModeChanged = Signal(PlayMode)
     pageImmersiveMode = Signal()
+    location = Signal()
+    songProgressChanged = Signal(int)
+    rectChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -190,11 +154,11 @@ class BottomPanel(QWidget):
         self.PLAY_MODE_LIST = list(PlayMode)
         self.current_play_mode_index = 0
 
-        self.resize(1200, 800)
-
         # 设置为固定高度
-        self.setMinimumHeight(100)
-        self.setMaximumHeight(100)
+        self.setFixedHeight(110)
+
+        # 歌曲进度条
+        self.progress_slider = ProgressSlider()
 
         left_layout = QHBoxLayout()
         # 当前播放歌曲封面
@@ -208,19 +172,13 @@ class BottomPanel(QWidget):
         ))
         # 当前歌曲标题
         current_song_info = QVBoxLayout()
-        current_song_info.setContentsMargins(0, 20, 0, 20)
-        title_font = QFont("Microsoft YaHei", 13)
-        title_font.setBold(True)
-        self.current_song_title = QLabel("歌曲标题")
+        current_song_info.setContentsMargins(0, 0, 0, 0)
+        current_song_info.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self.current_song_title = create_style_label("歌曲标题", font_size=11,
+                                                     color=theme_manager.current.text_color_300)
         self.current_song_title.setWordWrap(True)
-        self.current_song_title.setFont(title_font)
-        self.current_song_title.setStyleSheet(f"color: {theme_manager.current.text_color_300}")
-        self.current_song_artist = QLabel("歌手")
+        self.current_song_artist = create_style_label("歌手", font_size=10, color=theme_manager.current.text_color_100)
         self.current_song_artist.setWordWrap(True)
-        artist_font = QFont("Microsoft YaHei")
-        artist_font.setBold(True)
-        self.current_song_artist.setFont(artist_font)
-        self.current_song_artist.setStyleSheet(f"color: {theme_manager.current.text_color_100}")
         current_song_info.addWidget(self.current_song_title)
         current_song_info.addWidget(self.current_song_artist)
         left_layout.addWidget(self.current_song_cover)
@@ -230,22 +188,17 @@ class BottomPanel(QWidget):
         center_layout = QHBoxLayout()
         # 选择歌曲模式下拉框
         self.play_mode_button = PlayModeButton(self)
-        self.play_mode_button.clicked.connect(self.on_play_mode_changed)
         # 上一首按钮
         self.prev_song_button = NextOrPrevButton(SongChanged.PREV, self)
         self.prev_song_button.setToolTip("上一首")
-        self.prev_song_button.clicked.connect(self.on_prev_song_button_clicked)
         # 下一首按钮
         self.next_song_button = NextOrPrevButton(SongChanged.NEXT, self)
         self.next_song_button.setToolTip("下一首")
-        self.next_song_button.clicked.connect(self.on_next_song_button_clicked)
         # 播放/暂停按钮
         self.play_or_paused_button = PlayPausedButton(self)
-        self.play_or_paused_button.clicked.connect(self.on_play_or_paused)
         # 展示播放列表按钮
         self.show_playlist_button = PlayListButton(self)
         self.show_playlist_button.setToolTip("播放列表")
-        self.show_playlist_button.clicked.connect(self.on_playlist_button_clicked)
         center_layout.addWidget(self.play_mode_button)
         center_layout.addWidget(self.prev_song_button)
         center_layout.addWidget(self.play_or_paused_button)
@@ -256,25 +209,27 @@ class BottomPanel(QWidget):
         right_layout.setContentsMargins(0, 0, 0, 0)
         # 沉浸模式按钮
         self.immersive_mode_button = ImmersiveModeButton(self)
-        self.immersive_mode_button.clicked.connect(self.pageImmersiveMode)
+        # 定位按钮
+        self.location_button = LocationButton(self)
+        # 歌曲时间信息
+        self.time_label = create_style_label("00:00 / 00:00", font_size=11, color=theme_manager.current.text_color_200)
+        right_layout.addStretch(3)
+        right_layout.addWidget(self.time_label)
         right_layout.addStretch(1)
+        right_layout.addWidget(self.location_button)
         right_layout.addWidget(self.immersive_mode_button)
 
         main_layout = QHBoxLayout()
-        main_layout.setContentsMargins(9, 0, 9, 0)
-
-        # main_layout.addWidget(self.current_song_cover)
-        # main_layout.addLayout(current_song_info)
-        # main_layout.addWidget(self.play_mode_button)
-        # main_layout.addWidget(self.prev_song_button)
-        # main_layout.addWidget(self.play_or_paused_button)
-        # main_layout.addWidget(self.next_song_button)
-        # main_layout.addWidget(self.show_playlist_button)
+        main_layout.setContentsMargins(9, 12, 9, 0)
         main_layout.addLayout(left_layout, 1)
         main_layout.addLayout(center_layout, 2)
         main_layout.addLayout(right_layout, 1)
 
-        self.setLayout(main_layout)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.progress_slider)
+        layout.addLayout(main_layout)
 
         self.setObjectName("bottomPanel")
         self.setAutoFillBackground(True)
@@ -284,7 +239,18 @@ class BottomPanel(QWidget):
             }
         """)
 
-        theme_manager.themeChanged.connect(self.update)
+        self.bind()
+
+    def bind(self):
+        """绑定事件"""
+        self.play_mode_button.clicked.connect(self.on_play_mode_changed)  # 播放模式切换
+        self.prev_song_button.clicked.connect(self.on_prev_song_button_clicked)  # 上一首
+        self.next_song_button.clicked.connect(self.on_next_song_button_clicked)  # 下一首
+        self.play_or_paused_button.clicked.connect(self.on_play_or_paused)  # 播放/暂停
+        self.show_playlist_button.clicked.connect(self.on_playlist_button_clicked)  # 展示音乐列表
+        self.immersive_mode_button.clicked.connect(self.pageImmersiveMode)  # 进入沉浸模式
+        self.location_button.clicked.connect(self.on_location_button_clicked)  # 定位到当前音乐
+        self.progress_slider.valueChanged.connect(self.on_progress_slider_changed)  # 歌曲进度条拖动
 
     def set_current_song(self, song_item: SongItem):
         """设置当前播放音乐"""
@@ -310,6 +276,32 @@ class BottomPanel(QWidget):
         if is_changing:
             self.platModeChanged.emit(current_mode)
 
+    def reset_progress(self):
+        """重置进度"""
+        self.time_label.setText("00:00 / 00:00")
+        self.progress_slider.setValue(0)
+        self.progress_slider.setEnabled(True)
+
+    def update_progress(self, position, duration):
+        """更新进度"""
+        if duration < 0:
+            return
+        # 更新时间标签
+        self.time_label.setText(f"{ms_to_str(position)} / {ms_to_str(duration)}")
+        # 更新进度条
+        self.progress_slider.blockSignals(True)  # 阻塞信号
+        self.progress_slider.setMaximum(duration)
+        self.progress_slider.setValue(position)
+        self.progress_slider.blockSignals(False)
+
+    def showEvent(self, event, /):
+        super().showEvent(event)
+        self.rectChanged.emit()
+
+    def resizeEvent(self, event, /):
+        super().resizeEvent(event)
+        self.rectChanged.emit()
+
     @Slot()
     def on_playlist_button_clicked(self):
         """播放列表按钮点击"""
@@ -330,9 +322,20 @@ class BottomPanel(QWidget):
         """播放或暂停歌曲"""
         self.playOrPausedButtonClicked.emit()
 
+    @Slot()
     def on_play_mode_changed(self):
         """歌曲播放模式改变"""
         self.set_current_play_mode((self.current_play_mode_index + 1) % len(self.PLAY_MODE_LIST), is_changing=True)
+
+    @Slot()
+    def on_location_button_clicked(self):
+        """定位到当前歌曲"""
+        self.location.emit()
+
+    @Slot()
+    def on_progress_slider_changed(self, value):
+        """歌曲进度改变"""
+        self.songProgressChanged.emit(value)
 
 
 class PlayPausedButton(QPushButton):
@@ -455,6 +458,23 @@ class ImmersiveModeButton(SvgIconButton):
     def create_icon(self):
         self.btn_icon = create_svg_icon(immersive_mode_icon, self.normal_color, 30)
         self.hover_icon = create_svg_icon(immersive_mode_icon, self.hover_color, 30)
+
+
+class LocationButton(SvgIconButton):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setToolTip("定位")
+
+        self.normal_size = (40, 40)
+        self.pressed_size = (28, 28)
+
+        self.set_icon()
+
+    def create_icon(self):
+        self.btn_icon = create_svg_icon(location_icon, self.normal_color, 30)
+        self.hover_icon = create_svg_icon(location_icon, self.hover_color, 30)
 
 
 if __name__ == "__main__":

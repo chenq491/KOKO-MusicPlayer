@@ -1,19 +1,11 @@
 from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtGui import QFont, QColor
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QLabel, QFileDialog, QHBoxLayout, QPushButton, \
     QLineEdit, QSlider, QFrame, QButtonGroup, QRadioButton
 
 from singleton.config import Config
 from theme import theme_manager, Theme
-
-
-def create_style_label(text, font_size=13, bold=True, color=theme_manager.current.text_color_300):
-    label = QLabel(text)
-    font = QFont("Microsoft YaHei", font_size)
-    font.setBold(bold)
-    label.setFont(font)
-    label.setStyleSheet(f"color: {color}")
-    return label
+from uitls.utils import create_style_label
 
 
 def create_divider(color=theme_manager.current.bg_color_300, height=1):

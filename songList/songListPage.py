@@ -49,8 +49,12 @@ class SongListPage(QWidget):
         self.list_title.update_total(self.total)
 
     def set_current(self):
-        """跳转到指定的歌曲项并高亮显示"""
-        self.list_body.set_current(PlayListManager.get_current_song_index())
+        """高亮显示当前歌曲"""
+        self.list_body.set_current()
+
+    def location(self):
+        self.set_current()
+        self.list_body.scroll_to_current()
 
     @Slot()
     def on_search(self, value: str):
