@@ -2,6 +2,8 @@ from PySide6.QtCore import QAbstractListModel, QModelIndex, Qt, QSize, QRect, Sl
     QEasingCurve
 from PySide6.QtGui import QFontMetrics, QColor, QPen, QPainterPath, QPainter
 from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QListView
+
+from singleton.globalSignalBus import global_signal_bus
 from singleton.playListManager import PlayListManager
 from theme import theme_manager
 
@@ -11,8 +13,7 @@ class MusicListModel(QAbstractListModel):
         super().__init__(parent)
         self._data = []  # 音乐信息列表
 
-    def load_data(self):
-        self._data = PlayListManager.get_song_list()
+        global_signal_bus.songListShuffled.connect(self.update_data)
 
     def search_filter(self, key="title", value=""):
         """搜索条件过滤"""
@@ -31,6 +32,11 @@ class MusicListModel(QAbstractListModel):
                     self._data.append(item)
 
         # 提示重置数据完成
+        self.endResetModel()
+
+    def update_data(self):
+        self.beginResetModel()
+        self._data = PlayListManager.get_song_list()
         self.endResetModel()
 
     def rowCount(self, /, parent=QModelIndex()):
@@ -238,7 +244,7 @@ class MusicListView(QListView):
 
     def load_data(self):
         """加载列表数据"""
-        self.model.load_data()
+        self.model.update_data()
         self.setItemDelegate(MusicListItemDelegate(self.cover_size))
 
     def set_current(self):
@@ -252,9 +258,9 @@ class MusicListView(QListView):
         data = self.model.data(idx, Qt.ItemDataRole.UserRole)
         return data
 
-    def search(self, value: str):
+    def search(self, search_type:str, value: str):
         """搜索功能实现"""
-        self.model.search_filter(value=value)
+        self.model.search_filter(key=search_type, value=value)
 
     def scroll_to_current(self):
         """跳转到当前音乐"""

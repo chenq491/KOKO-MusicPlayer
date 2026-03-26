@@ -1,10 +1,12 @@
 from PySide6.QtGui import QCloseEvent, QPainter, QColor, QPixmap
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QStackedWidget, QLabel
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QStackedWidget
 )
-from PySide6.QtCore import Slot, QUrl, QTimer, Qt, QPropertyAnimation, QEasingCurve, QRect
+from PySide6.QtCore import Slot, QUrl, QTimer, Qt, QPropertyAnimation, QEasingCurve
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 import sys
+
+from components.handleLabel import HandleLabel
 from singleton.playListManager import PlayListManager
 from playListWidget import PlayListPanel
 from singleton.config import Config
@@ -80,6 +82,9 @@ class MusicPlayer(QMainWindow):
         self.playlist_panel = PlayListPanel(PlayListManager.get_playlist(), self)
         self.playlist_panel.update_geometry()
 
+        self.handle_label = HandleLabel(self)
+        self.handle_label.set_geometry(0)
+
         # 样式
         self.bg_pixmap = QPixmap()
         self.setObjectName("mainWindow")
@@ -87,11 +92,6 @@ class MusicPlayer(QMainWindow):
         self.bind()
         self.load_data()
         self.set_style()
-
-        self.handle_label = QLabel(self)
-        self.handle_label.setPixmap(QPixmap("./assets/guitar.svg"))
-        self.handle_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.bp_rect = QRect(0, 0, 0, 0)
 
     def bind(self):
         """绑定事件"""
@@ -102,7 +102,6 @@ class MusicPlayer(QMainWindow):
         self.media_player.playbackStateChanged.connect(self.on_playback_state_changed)  # 播放状态改变
 
         self.song_list_page.songItemDoubleClicked.connect(self.on_music_list_item_double_clicked)
-        self.song_list_page.refresh.connect(self.update_music_list)
 
         self.settings_widget.musicDirSelected.connect(self.on_music_dir_selected)  # 选择音乐文件夹
         self.settings_widget.volumeChanged.connect(self.on_volume_changed)  # 音量改变
@@ -147,7 +146,7 @@ class MusicPlayer(QMainWindow):
                     self.song_list_page.set_current()
                     self.play_music()
                     self.media_player.pause()
-                    QTimer.singleShot(50, set_position)
+                    QTimer.singleShot(20, set_position)
 
     def play_music(self):
         """播放音乐"""
@@ -175,6 +174,12 @@ class MusicPlayer(QMainWindow):
         self.bottom_panel.update_progress(position, duration)
         # 沉浸模式频谱图更新
         self.immersive_mode_widget.update_spectrum_from_position(position)
+
+        # 改变手柄位置
+        if duration == 0:
+            self.handle_label.set_geometry(0)
+        else:
+            self.handle_label.set_geometry(int((position / duration) * self.width()))
 
     def update_music_list(self):
         """更新音乐列表"""
@@ -281,11 +286,6 @@ class MusicPlayer(QMainWindow):
     def on_timer_timeout(self):
         """歌曲更新"""
         self.update_music_progress()
-        self.handle_label.setGeometry(QRect(
-            int(self.bottom_panel.progress_slider.get_ratio() * self.width()) - 16,
-            self.bp_rect.top() - 11,
-            32, 32
-        ))
 
     @Slot()
     def on_play_or_paused(self):
@@ -303,6 +303,7 @@ class MusicPlayer(QMainWindow):
     def on_song_progress_changed(self, value):
         """改变歌曲进度"""
         self.media_player.setPosition(value)
+        self.handle_label.set_geometry(int(value / self.media_player.duration() * self.width()))
 
     @Slot()
     def on_play_mode_changed(self, current_mode: PlayMode):
@@ -349,21 +350,22 @@ class MusicPlayer(QMainWindow):
 
     @Slot()
     def on_background_changed(self, bg: QPixmap):
+        """主窗口背景改变"""
         if self.stacked_widget.currentIndex() == 2:
             self.bg_pixmap = bg
             self.update(self.rect())
 
     @Slot()
     def on_song_list_location(self):
-        if self.stacked_widget.currentIndex() == 0:
-            self.song_list_page.location()
+        """定位当前歌曲位置"""
+        if self.stacked_widget.currentIndex() != 0:
+            self.on_page_changed(0)
+        self.song_list_page.location()
 
     @Slot()
     def on_bottom_panel_rect_changed(self):
-        self.bp_rect = QRect(
-            self.bottom_panel.mapTo(self, self.bottom_panel.rect().topLeft()),
-            self.bottom_panel.size()
-        )
+        self.handle_label.update_bp_rect(self.bottom_panel)
+        self.update_music_progress()
 
 if __name__ == "__main__":
     # QApplication.setStyle("Windows")

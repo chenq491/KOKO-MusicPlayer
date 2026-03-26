@@ -1,7 +1,10 @@
 from pathlib import Path
 
+from PySide6.QtCore import Signal
+
 from singleton.config import Config
 from constant import PlayMode, MUSIC_SUFFIX
+from singleton.globalSignalBus import global_signal_bus
 from songList.songItem import SongItem
 from uitls.utils import range_loop
 import random
@@ -128,3 +131,19 @@ class PlayListManager:
             cls.set_current_play_index(len(cls._playlist) - 1)
         else:
             cls.set_current_play_index(cls._current_play_index - 1)
+
+    @classmethod
+    def shuffle_music_list(cls):
+        """打乱音乐列表"""
+        indices = list(range(len(cls._song_list)))  # 映射索引
+        random.shuffle(indices)  # 打乱索引
+        new_song_list = [0] * len(cls._song_list)
+        for i in range(len(cls._song_list)):
+            song_item = cls._song_list[i]
+            song_item.index = indices[i]
+            new_song_list[indices[i]] = song_item
+            cls._playlist[i] = indices[cls._playlist[i]]
+
+        cls._song_list = new_song_list
+        cls._current_song_index = indices[cls._current_song_index]
+        global_signal_bus.song_list_shuffled_emit()  # 发射信号刷新视图
