@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QLabel, QFileDi
     QLineEdit, QSlider, QFrame, QButtonGroup, QRadioButton
 
 from singleton.config import Config
-from theme import theme_manager, Theme
+from singleton.themeManager import theme_manager, Theme
 from uitls.utils import create_style_label
 
 
@@ -54,7 +54,7 @@ class SettingPage(QWidget):
         self.content_widget = SettingsContentWidget(self)
         self.content_widget.musicDirSelected.connect(self.musicDirSelected)
         self.content_widget.volumeChanged.connect(self.volumeChanged)
-        self.content_widget.init_config()
+        self.content_widget.init_config()  # 初始化配置内容
 
         self.main_area.setWidget(self.content_widget)
 
@@ -101,8 +101,10 @@ class SettingsContentWidget(QWidget):
     def init_config(self):
         """初始化配置项"""
         self.select_music_dir_setting.music_dir_path_line.setText(Config.get_value('music_dir'))
+        self.music_volume_setting.volume_slider.setValue(int(Config.get_value('volume') * 100))
 
     def update_style(self):
+        """更新样式"""
         self.select_music_dir_setting.update_style()
         self.music_volume_setting.update_style()
         self.startup_setting.update_style()

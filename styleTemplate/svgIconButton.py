@@ -1,7 +1,6 @@
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QPushButton
-from abc import ABC, abstractmethod
-from theme import theme_manager
+from singleton.themeManager import theme_manager
 
 
 class SvgIconButton(QPushButton):

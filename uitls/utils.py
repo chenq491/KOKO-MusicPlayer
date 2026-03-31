@@ -1,6 +1,5 @@
 import re
 import sys
-from venv import create
 
 import numpy as np
 from PySide6.QtCore import QByteArray, Qt, QRect
@@ -9,7 +8,7 @@ from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QApplication, QLabel
 from scipy.fft import rfft
 
-from theme import theme_manager
+from singleton.themeManager import theme_manager
 
 
 def ms_to_str(ms: int) -> str:

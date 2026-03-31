@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QListView
 
 from singleton.globalSignalBus import global_signal_bus
 from singleton.playListManager import PlayListManager
-from theme import theme_manager
+from singleton.themeManager import theme_manager
 
 
 class MusicListModel(QAbstractListModel):

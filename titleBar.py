@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel
 
@@ -14,14 +14,16 @@ class TitleBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
+        self.window_geo = parent.geometry()
+        self.is_maximized = False
 
         self.initial_pos = None
 
         # 设置高度
         self.setFixedHeight(40)
 
-        main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(20, 0, 0, 0)
+        # 缩放动画
+        self.anim = None
 
         # 窗口标题
         self.title = QLabel("KOKO音乐播放器")
@@ -31,41 +33,32 @@ class TitleBar(QWidget):
             font-weight: bold;
             background-color: transparent;
         """)
-        main_layout.addWidget(self.title)
 
         # 设置按钮
         self.config_button = ConfigButton(self)
-        self.config_button.setFixedSize(40, 40)
-        self.config_button.clicked.connect(self.pageConfig)
-
         # 主页按钮
         self.home_button = HomeButton(self)
-        self.home_button.setFixedSize(40, 40)
-        self.home_button.clicked.connect(self.pageHome)
-
         # 最小化按钮
         self.min_button = MinButton(self)
-        self.min_button.setFixedSize(40, 40)
-        self.min_button.clicked.connect(self.parent.showMinimized)
-
         # 最大化/还原按钮
         self.max_button = MaxButton(self)
-        self.max_button.setFixedSize(40, 40)
-        self.max_button.clicked.connect(self.toggle_maximize)
-
         # 关闭按钮
         self.close_button = CloseButton(self)
-        self.close_button.setFixedSize(40, 40)
-        self.close_button.setStyleSheet("""
-            QPushButton { 
-                color: #4a4c57; 
-            } 
-            QPushButton:hover { 
-            }
-        """)
-        self.close_button.clicked.connect(self.parent.close_smooth)
 
-        # 添加按钮到右侧
+        self.init_ui()
+        self.bind()
+
+    def init_ui(self):
+        """初始化布局"""
+        self.config_button.setFixedSize(40, 40)
+        self.home_button.setFixedSize(40, 40)
+        self.min_button.setFixedSize(40, 40)
+        self.max_button.setFixedSize(40, 40)
+        self.close_button.setFixedSize(40, 40)
+
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(20, 0, 0, 0)
+        main_layout.addWidget(self.title)
         main_layout.addStretch()
         main_layout.addWidget(self.home_button)
         main_layout.addWidget(self.config_button)
@@ -73,13 +66,52 @@ class TitleBar(QWidget):
         main_layout.addWidget(self.max_button)
         main_layout.addWidget(self.close_button)
 
+    def bind(self):
+        """绑定事件"""
+        self.config_button.clicked.connect(self.pageConfig)
+        self.home_button.clicked.connect(self.pageHome)
+        self.min_button.clicked.connect(self.parent.showMinimized)
+        self.max_button.clicked.connect(self.toggle_maximize)
+        self.close_button.clicked.connect(self.parent.close_smooth)
+
     def toggle_maximize(self):
-        if self.parent.windowState() == Qt.WindowState.WindowMaximized or self.parent.windowState() == Qt.WindowState.WindowFullScreen:
-            self.parent.showNormal()
+        # if self.parent.windowState() == Qt.WindowState.WindowMaximized or self.parent.windowState() == Qt.WindowState.WindowFullScreen:
+        #
+        #     start_geo = self.screen().geometry()
+        #     end_geo = self.window_geo
+        #
+        #     self.parent.showNormal()
+        #     self.max_button.update_display(False)
+        # else:
+        #     start_geo = self.parent.geometry()
+        #     end_geo = self.screen().geometry()
+        #     self.window_geo = start_geo
+        #
+        #     self.parent.showMaximized()
+        #     self.max_button.update_display(True)
+
+        if self.is_maximized:
+            start_geo = self.screen().geometry()
+            end_geo = self.window_geo
+
             self.max_button.update_display(False)
         else:
-            self.parent.showMaximized()
+            start_geo = self.parent.geometry()
+            end_geo = self.screen().geometry()
+            self.window_geo = start_geo
+
             self.max_button.update_display(True)
+
+        self.resize_animation(start_geo, end_geo)
+        self.is_maximized = not self.is_maximized
+
+    def resize_animation(self, start_geo, end_geo):
+        self.anim = QPropertyAnimation(self.parent, b"geometry")
+        self.anim.setStartValue(start_geo)
+        self.anim.setEndValue(end_geo)
+        self.anim.setDuration(200)
+        self.anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self.anim.start()
 
     # 允许通过标题栏拖动窗口
     def mousePressEvent(self, event: QMouseEvent):

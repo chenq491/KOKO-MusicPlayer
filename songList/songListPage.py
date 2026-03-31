@@ -3,7 +3,7 @@ from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 
 from singleton.playListManager import PlayListManager
-from theme import theme_manager
+from singleton.themeManager import theme_manager
 from .songListToolBar import SongListToolBar
 from .songListView import MusicListView
 

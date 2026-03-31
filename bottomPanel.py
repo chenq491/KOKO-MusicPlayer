@@ -1,12 +1,12 @@
 from PySide6.QtCore import Signal, Slot, Qt, QSize, QRectF, QRect
-from PySide6.QtGui import QFont, QPixmap, QPainter, QColor, QBrush
+from PySide6.QtGui import QPixmap, QPainter, QColor, QBrush
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QApplication, QLabel, QPushButton, QVBoxLayout, QSlider
 from constant import SongChanged, PlayMode, COVER_SiZE
 from songList.songItem import SongItem
 from assets.svg import playing_icon, paused_icon, next_song_icon, prev_song_icon, play_list_icon, order_play_mode_icon, \
     random_play_mode_icon, repeat_play_mode_icon, immersive_mode_icon, location_icon
 from styleTemplate.svgIconButton import SvgIconButton
-from theme import theme_manager
+from singleton.themeManager import theme_manager
 from uitls.utils import create_svg_icon, ms_to_str, create_style_label
 
 

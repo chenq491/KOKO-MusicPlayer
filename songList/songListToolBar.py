@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton, QCom
 from assets.svg import refresh_icon, shuffle_icon
 from singleton.playListManager import PlayListManager
 from styleTemplate.svgIconButton import SvgIconButton
-from theme import theme_manager, Theme
+from singleton.themeManager import theme_manager, Theme
 from uitls.utils import create_svg_icon
 
 

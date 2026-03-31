@@ -18,6 +18,7 @@ class Config:
             # 先写入默认配置
             cls._data = {
                 'music_dir': '',
+                'volume': 0.5,
                 'play_mode': PlayMode.ORDER.value,
                 'startup_setting': {
                     'keep_last_progress': 0
