@@ -14,7 +14,7 @@ from immersiveModePage import ImmersiveModeWidget
 from components.message import show_message
 from settingPage import SettingPage
 from songListPage import SongListPage
-from bottomPanel import BottomPanel
+from bottomPanel.bottomPanel import BottomPanel
 from progressDisplay import ProgressDisplay
 from titleBar import TitleBar
 
