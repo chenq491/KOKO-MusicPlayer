@@ -1,6 +1,15 @@
-from PySide6.QtCore import QAbstractListModel, QModelIndex, Qt, QSize, QRect, Slot, Signal, QPropertyAnimation, \
-    QEasingCurve
-from PySide6.QtGui import QFontMetrics, QColor, QPen, QPainterPath, QPainter
+from PySide6.QtCore import (
+    QAbstractListModel,
+    QModelIndex,
+    Qt,
+    QSize,
+    QRect,
+    Slot,
+    Signal,
+    QPropertyAnimation,
+    QEasingCurve,
+)
+from PySide6.QtGui import QBrush, QFontMetrics, QColor, QPen, QPainterPath, QPainter
 from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QListView
 
 from singleton.globalSignalBus import global_signal_bus
@@ -71,18 +80,25 @@ class MusicListItemDelegate(QStyledItemDelegate):
     def sizeHint(self, option, index, /):
         return QSize(100, self.cover_size + self.margin * 2)  # 固定每行高度
 
-    def paint(self, painter, option, index):
+    def paint(self, painter: QPainter, option, index):
         painter.save()  # 保存绘画状态，防止污染
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)  # 开启抗锯齿，边缘更平滑
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)  # 开启图像平滑变换
+        painter.setRenderHint(
+            QPainter.RenderHint.Antialiasing, True
+        )  # 开启抗锯齿，边缘更平滑
+        painter.setRenderHint(
+            QPainter.RenderHint.SmoothPixmapTransform, True
+        )  # 开启图像平滑变换
 
+        painter.setPen(Qt.PenStyle.NoPen)
         # 绘制背景，选中和悬停状态
         if option.state & QStyle.StateFlag.State_Selected:  # 选中
-            painter.fillRect(option.rect, QColor(theme_manager.current.list_item_selected))
+            painter.setBrush(QBrush(QColor(theme_manager.current.list_item_selected)))
+            painter.drawRoundedRect(option.rect, 8, 8)
         elif option.state & QStyle.StateFlag.State_MouseOver:  # 悬停
-            painter.fillRect(option.rect, QColor(theme_manager.current.list_item_hover))
+            painter.setBrush(QBrush(QColor(theme_manager.current.list_item_hover)))
+            painter.drawRoundedRect(option.rect, 8, 8)
         else:
-            painter.fillRect(option.rect, QColor(theme_manager.current.list_item_bg))
+            painter.fillRect(option.rect, QColor(theme_manager.current.window_bg))
 
         text_color = QColor(theme_manager.current.text_bold)
 
@@ -102,7 +118,7 @@ class MusicListItemDelegate(QStyledItemDelegate):
             option.rect.left(),
             option.rect.top(),
             int(option.rect.width() * 0.04),
-            option.rect.height()
+            option.rect.height(),
         )
         font = painter.font()
         font.setBold(True)
@@ -122,13 +138,21 @@ class MusicListItemDelegate(QStyledItemDelegate):
         """
         cover_rect = QRect(
             # idx_rect.left(),
-            idx_rect.right(), option.rect.top() + self.margin,
+            idx_rect.right(),
+            option.rect.top() + self.margin,
             self.cover_size,
-            self.cover_size
+            self.cover_size,
         )
         # 圆角
         path = QPainterPath()
-        path.addRoundedRect(cover_rect.x(), cover_rect.y(), cover_rect.width(), cover_rect.height(), 10, 10)
+        path.addRoundedRect(
+            cover_rect.x(),
+            cover_rect.y(),
+            cover_rect.width(),
+            cover_rect.height(),
+            10,
+            10,
+        )
         # painter.setClipPath(path)
         painter.drawPixmap(cover_rect, cover)
         # 边框
@@ -147,18 +171,21 @@ class MusicListItemDelegate(QStyledItemDelegate):
         绘制歌名
         """
         title_rect = QRect(
-            text_left,
-            text_top,
-            int(text_width * self.ratio[0]),
-            int(text_height * 0.6)
+            text_left, text_top, int(text_width * self.ratio[0]), int(text_height * 0.6)
         )
         font.setPointSize(12)
         painter.setFont(font)
         painter.setPen(text_color)
         # 简单处理文字过长 (添加省略号)
         fm = QFontMetrics(font)
-        elided_title = fm.elidedText(title, Qt.TextElideMode.ElideRight, title_rect.width() - 10)  # 留50px给时长
-        painter.drawText(title_rect, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft, elided_title)
+        elided_title = fm.elidedText(
+            title, Qt.TextElideMode.ElideRight, title_rect.width() - 10
+        )  # 留50px给时长
+        painter.drawText(
+            title_rect,
+            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft,
+            elided_title,
+        )
 
         """
         绘制歌手
@@ -167,38 +194,44 @@ class MusicListItemDelegate(QStyledItemDelegate):
             text_left,
             title_rect.bottom() + 2,
             int(text_width * self.ratio[0]),
-            text_height
+            text_height,
         )
         font.setBold(False)
         font.setPointSize(10)
         painter.setFont(font)
         painter.setPen(theme_manager.current.text_light)
-        elided_artist = fm.elidedText(artist, Qt.TextElideMode.ElideRight, artist_rect.width() - 10)
-        painter.drawText(artist_rect, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft, elided_artist)
+        elided_artist = fm.elidedText(
+            artist, Qt.TextElideMode.ElideRight, artist_rect.width() - 10
+        )
+        painter.drawText(
+            artist_rect,
+            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft,
+            elided_artist,
+        )
 
         """
         绘制专辑名
         """
         album_rect = QRect(
-            title_rect.right(),
-            text_top,
-            int(text_width * self.ratio[1]),
-            text_height
+            title_rect.right(), text_top, int(text_width * self.ratio[1]), text_height
         )
         font.setBold(True)
         painter.setFont(font)
         painter.setPen(text_color)
-        elided_album = fm.elidedText(album, Qt.TextElideMode.ElideRight, album_rect.width())
-        painter.drawText(album_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, elided_album)
+        elided_album = fm.elidedText(
+            album, Qt.TextElideMode.ElideRight, album_rect.width()
+        )
+        painter.drawText(
+            album_rect,
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+            elided_album,
+        )
 
         """
         绘制时长
         """
         duration_rect = QRect(
-            album_rect.right(),
-            text_top,
-            int(text_width * self.ratio[2]),
-            text_height
+            album_rect.right(), text_top, int(text_width * self.ratio[2]), text_height
         )
         painter.drawText(duration_rect, Qt.AlignmentFlag.AlignCenter, duration)
 
@@ -223,7 +256,6 @@ class MusicListView(QListView):
         self.setModel(self.model)
 
         self.setAutoFillBackground(False)
-        self.setStyleSheet("background-color: transparent;")
 
         # 平滑滚动动画
         self._animation = QPropertyAnimation(self.verticalScrollBar(), b"value")
@@ -231,6 +263,51 @@ class MusicListView(QListView):
         self._animation.setDuration(300)  # 毫秒
 
         self.doubleClicked.connect(self.on_item_double_clicked)
+        self.setObjectName("MusicList")
+        self.update_style()
+        theme_manager.themeChanged.connect(self.update_style)
+
+    def update_style(self):
+        """设置样式"""
+        self.setStyleSheet(
+            f"""
+            #MusicList{{
+                background: transparent;
+                border-top: 1px solid {theme_manager.current.list_item_bg};
+            }}
+            /* --- 垂直滚动条 --- */
+            QScrollBar:vertical {{
+                border: none;
+                background-color: {theme_manager.current.list_item_bg};
+                width: 6px;       /* 滚动条宽度 */
+                border-radius: 3px; /* 整体圆角 */
+                margin: 0;
+            }}
+
+            /* --- 滑块 (Handle) --- */
+            QScrollBar::handle:vertical {{
+                background: {theme_manager.current.slider_bg};
+                min-height: 50px;  /* 滑块最小高度，防止太短 */
+                border-radius: 3px; /* 滑块圆角 */
+            }}
+
+            /* 滑块悬停效果 */
+            QScrollBar::handle:vertical:hover {{
+                background: {theme_manager.current.slider_progress};
+            }}
+
+            /* --- 上下箭头按钮 (隐藏) --- */
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0px;       /* 高度设为0即隐藏 */
+                background: none;
+            }}
+
+            /* --- 点击的轨道区域 (上下空白处) --- */
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background: {theme_manager.current.window_bg};
+            }}
+        """
+        )
 
     def _animate_scroll(self, target):
         scroll_bar = self.verticalScrollBar()
@@ -258,13 +335,16 @@ class MusicListView(QListView):
         data = self.model.data(idx, Qt.ItemDataRole.UserRole)
         return data
 
-    def search(self, search_type:str, value: str):
+    def search(self, search_type: str, value: str):
         """搜索功能实现"""
         self.model.search_filter(key=search_type, value=value)
 
     def scroll_to_current(self):
         """跳转到当前音乐"""
-        self.scrollTo(self.model.index(PlayListManager.get_current_song_index()), QListView.ScrollHint.PositionAtCenter)
+        self.scrollTo(
+            self.model.index(PlayListManager.get_current_song_index()),
+            QListView.ScrollHint.PositionAtCenter,
+        )
 
     def wheelEvent(self, event):
         """实现平滑滚动"""

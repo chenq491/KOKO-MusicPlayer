@@ -1,6 +1,11 @@
 from PySide6.QtGui import QCloseEvent, QPainter, QColor, QPixmap
-from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                               QStackedWidget)
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QStackedWidget,
+)
 from PySide6.QtCore import Slot, QTimer, Qt, QPropertyAnimation, QEasingCurve
 from PySide6.QtMultimedia import QMediaPlayer
 import sys
@@ -9,7 +14,7 @@ from components.handleLabel import HandleLabel
 from singleton.config import config
 from singleton.mediaPlayer import media_player
 from singleton.playListManager import PlayListManager
-from singleton.themeManager import theme_manager
+from singleton.themeManager import ThemeMode, theme_manager
 from playListWidget import PlayListPanel
 from constant import PlayMode, SongChanged
 from immersiveModePage import ImmersiveModeWidget
@@ -68,7 +73,7 @@ class MusicPlayer(QMainWindow):
         self.timer.timeout.connect(self.on_timer_timeout)
 
         # 播放列表展示面板
-        self.playlist_panel = PlayListPanel(PlayListManager.get_playlist(),self)
+        self.playlist_panel = PlayListPanel(PlayListManager.get_playlist(), self)
         self.playlist_panel.update_geometry()
 
         self.handle_label = HandleLabel(self)
@@ -84,52 +89,75 @@ class MusicPlayer(QMainWindow):
 
     def bind(self):
         """绑定事件"""
-        self.title_bar.pageConfig.connect(lambda: self.on_page_changed(1))  # 切换到设置页面
-        self.title_bar.pageHome.connect(lambda: self.on_page_changed(0))  # 切换到主页页面
+        self.title_bar.pageConfig.connect(
+            lambda: self.on_page_changed(1)
+        )  # 切换到设置页面
+        self.title_bar.pageHome.connect(
+            lambda: self.on_page_changed(0)
+        )  # 切换到主页页面
 
-        self.song_list_page.songItemDoubleClicked.connect(self.on_music_list_item_double_clicked)
+        self.song_list_page.songItemDoubleClicked.connect(
+            self.on_music_list_item_double_clicked
+        )
 
-        self.settings_widget.musicDirSelected.connect(self.on_music_dir_selected)  # 选择音乐文件夹
+        self.settings_widget.musicDirSelected.connect(
+            self.on_music_dir_selected
+        )  # 选择音乐文件夹
         self.settings_widget.volumeChanged.connect(media_player.set_volume)  # 音量改变
 
         self.immersive_mode_widget.backgroundChanged.connect(self.on_background_changed)
 
-        self.bottom_panel.songProgressChanged.connect(self.on_song_progress_changed)  # 歌曲进度条改变
-        self.bottom_panel.songChangedButtonClicked.connect(self.on_song_changed_button_clicked)  # 切换歌曲
-        self.bottom_panel.playOrPausedButtonClicked.connect(media_player.play_or_paused)  # 播放/暂停歌曲
-        self.bottom_panel.platModeChanged.connect(self.on_play_mode_changed)  # 播放模式切换
-        self.bottom_panel.playlistButtonClicked.connect(self.playlist_panel.show_or_hidden)  # 点击播放列表按钮
+        self.bottom_panel.songProgressChanged.connect(
+            self.on_song_progress_changed
+        )  # 歌曲进度条改变
+        self.bottom_panel.songChangedButtonClicked.connect(
+            self.on_song_changed_button_clicked
+        )  # 切换歌曲
+        self.bottom_panel.playOrPausedButtonClicked.connect(
+            media_player.play_or_paused
+        )  # 播放/暂停歌曲
+        self.bottom_panel.platModeChanged.connect(
+            self.on_play_mode_changed
+        )  # 播放模式切换
+        self.bottom_panel.playlistButtonClicked.connect(
+            self.playlist_panel.show_or_hidden
+        )  # 点击播放列表按钮
         self.bottom_panel.pageImmersiveMode.connect(lambda: self.on_page_changed(2))
         self.bottom_panel.location.connect(self.on_song_list_location)
         self.bottom_panel.rectChanged.connect(self.on_bottom_panel_rect_changed)
 
-        self.playlist_panel.selectMusic.connect(self.on_playlist_select_music)  # 播放列表切换歌曲
+        self.playlist_panel.selectMusic.connect(
+            self.on_playlist_select_music
+        )  # 播放列表切换歌曲
 
         theme_manager.themeChanged.connect(self.update)
-        media_player.media_player.playbackStateChanged.connect(self.on_playback_state_changed)  # 播放状态改变
+        media_player.media_player.playbackStateChanged.connect(
+            self.on_playback_state_changed
+        )  # 播放状态改变
 
     def set_style(self):
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             #mainWindow{{
                 border: none;
             }}
-        """)
+        """
+        )
 
     def load_data(self):
         """加载设置数据"""
 
         def set_position():
-            media_player.set_position(play_progress['position'])
+            media_player.set_position(play_progress["position"])
             self.update_music_progress()
 
         # 加载音乐文件夹里的音乐
-        if config.get_value('music_dir') != "":
+        if config.get_value("music_dir") != "":
             self.update_music_list()
-            if config.get_value(['startup_setting', 'keep_last_progress']):
+            if config.get_value(["startup_setting", "keep_last_progress"]):
                 # 加载上一次播放进度
-                play_progress = config.get_value('play_progress')
-                self.bottom_panel.set_current_play_mode(
-                    play_progress['play_mode'])
+                play_progress = config.get_value("play_progress")
+                self.bottom_panel.set_current_play_mode(play_progress["play_mode"])
                 if PlayListManager.get_playlist():
                     self.song_list_page.set_current()
                     self.play_music()
@@ -137,7 +165,7 @@ class MusicPlayer(QMainWindow):
                     QTimer.singleShot(50, set_position)
 
         # 加载音量配置
-        media_player.set_volume(config.get_value('volume'))
+        media_player.set_volume(config.get_value("volume"))
 
     def play_music(self):
         """播放音乐"""
@@ -170,8 +198,7 @@ class MusicPlayer(QMainWindow):
         if duration == 0:
             self.handle_label.set_geometry(0)
         else:
-            self.handle_label.set_geometry(
-                int((position / duration) * self.width()))
+            self.handle_label.set_geometry(int((position / duration) * self.width()))
 
     def update_music_list(self):
         """更新音乐列表"""
@@ -179,7 +206,8 @@ class MusicPlayer(QMainWindow):
         # 如果存在播放列表，则更新它
         if PlayListManager.get_playlist():
             PlayListManager.update_playlist(
-                self.bottom_panel.get_current_play_mode(is_index=False))
+                self.bottom_panel.get_current_play_mode(is_index=False)
+            )
         # 若存在当前播放音乐，则跳转并高亮显示
         if PlayListManager.get_current_song_index() != -1:
             self.song_list_page.set_current()
@@ -198,13 +226,13 @@ class MusicPlayer(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent):
         """窗口关闭执行操作"""
-        if config.get_value(['startup_setting', 'keep_last_progress']):
+        if config.get_value(["startup_setting", "keep_last_progress"]):
             # 保存播放进度
             play_progress = {
-                'play_list': PlayListManager.get_playlist(),
-                'current_play_index': PlayListManager.get_current_play_index(),
-                'position': media_player.get_position(),
-                'play_mode': self.bottom_panel.get_current_play_mode()
+                "play_list": PlayListManager.get_playlist(),
+                "current_play_index": PlayListManager.get_current_play_index(),
+                "position": media_player.get_position(),
+                "play_mode": self.bottom_panel.get_current_play_mode(),
             }
             config.save_value("play_progress", play_progress)
 
@@ -217,12 +245,15 @@ class MusicPlayer(QMainWindow):
         绘制背景
         """
         painter = QPainter(self)
-        painter.fillRect(self.rect(),
-                         QColor(theme_manager.current.window_bg))
-        if not self.bg_pixmap.isNull() and config.get_value(["immersive_mode_setting", "panoramic_mode"]):
+        painter.fillRect(self.rect(), QColor(theme_manager.current.window_bg))
+        if not self.bg_pixmap.isNull() and config.get_value(
+            ["immersive_mode_setting", "panoramic_mode"]
+        ):
             self.bg_pixmap = self.bg_pixmap.scaled(
-                self.size(), Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                Qt.TransformationMode.SmoothTransformation)
+                self.size(),
+                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                Qt.TransformationMode.SmoothTransformation,
+            )
             x = (self.width() - self.bg_pixmap.width()) // 2
             y = (self.height() - self.bg_pixmap.height()) // 2
             painter.drawPixmap(x, y, self.bg_pixmap)
@@ -230,7 +261,7 @@ class MusicPlayer(QMainWindow):
     @Slot()
     def on_music_dir_selected(self, music_dir):
         """选择了音乐文件夹"""
-        config.save_value('music_dir', music_dir)
+        config.save_value("music_dir", music_dir)
         PlayListManager.reset()  # 重置播放管理器
         self.update_music_list()
 
@@ -239,8 +270,7 @@ class MusicPlayer(QMainWindow):
         """双击音乐列表中的音乐"""
         # 设置播放列表
         PlayListManager.set_current_song_index(current_song_index)
-        PlayListManager.update_playlist(
-            self.bottom_panel.get_current_play_mode(False))
+        PlayListManager.update_playlist(self.bottom_panel.get_current_play_mode(False))
 
         # 更新播放列表视图
         self.playlist_panel.set_content()
@@ -288,13 +318,16 @@ class MusicPlayer(QMainWindow):
         """改变歌曲进度"""
         media_player.set_position(value)
         self.handle_label.set_geometry(
-            int(value / media_player.get_duration() * self.width()))
+            int(value / media_player.get_duration() * self.width())
+        )
 
     @Slot()
     def on_play_mode_changed(self, current_mode: PlayMode):
         """更改播放模式"""
         PlayListManager.update_playlist(current_mode)
-        show_message("播放模式修改成功，播放列表已更新！", msg_type="success", parent=self)
+        show_message(
+            "播放模式修改成功，播放列表已更新！", msg_type="success", parent=self
+        )
 
     @Slot()
     def on_song_changed_button_clicked(self, song_changed: SongChanged):
@@ -323,9 +356,14 @@ class MusicPlayer(QMainWindow):
         current_index = self.stacked_widget.currentIndex()
         self.stacked_widget.setCurrentIndex(page_index)
         if current_index == 2 and page_index != 2:
+            theme_manager.set_theme(
+                ThemeMode(config.get_value(["style_setting", "dark_mode"])), None
+            )
             self.bg_pixmap = QPixmap()
             self.update(self.rect())
         elif current_index != 2 and page_index == 2:
+            if config.get_value(["immersive_mode_setting", "panoramic_mode"]):
+                theme_manager.set_theme(ThemeMode.DARK, None)
             self.update(self.rect())
 
     @Slot()

@@ -30,7 +30,7 @@ class SongListPage(QWidget):
         self.current_song_item_widget = None
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(6, 0, 0, 0)
         main_layout.addWidget(self.tool_bar)
         main_layout.addWidget(self.list_title)
         main_layout.addWidget(self.list_body)
@@ -55,7 +55,6 @@ class SongListPage(QWidget):
     @Slot()
     def on_search(self, info: list):
         self.list_body.search(*info)
-
 
 
 class ListTitle(QWidget):
@@ -85,31 +84,41 @@ class ListTitle(QWidget):
 
         w = rect.left()
         idx_width = int(rect.width() * 0.04)
-        painter.drawText(QRect(
-            w, rect.top(), idx_width, rect.height()
-        ), Qt.AlignmentFlag.AlignCenter, f"#{self.total}")
+        painter.drawText(
+            QRect(w, rect.top(), idx_width, rect.height()),
+            Qt.AlignmentFlag.AlignCenter,
+            f"#{self.total}",
+        )
 
         w += idx_width
         cover_width = 60
-        painter.drawText(QRect(
-            w, 0, cover_width, rect.height()
-        ), Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, "封面")
+        painter.drawText(
+            QRect(w, 0, cover_width, rect.height()),
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+            "封面",
+        )
 
         w += cover_width
         text_width = rect.width() - (w + 15)
         title_width = int(text_width * 0.6)
-        painter.drawText(QRect(
-            w + 15, 0, title_width, rect.height()
-        ), Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, "歌名/歌手")
+        painter.drawText(
+            QRect(w + 15, 0, title_width, rect.height()),
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+            "歌名/歌手",
+        )
 
         w += title_width
         album_width = int(text_width * 0.32)
-        painter.drawText(QRect(
-            w, 0, album_width, rect.height()
-        ), Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, "专辑")
+        painter.drawText(
+            QRect(w, 0, album_width, rect.height()),
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+            "专辑",
+        )
 
         w += album_width
         duration_width = int(text_width * 0.08)
-        painter.drawText(QRect(
-            w, 0, duration_width, rect.height()
-        ), Qt.AlignmentFlag.AlignCenter, "时长")
+        painter.drawText(
+            QRect(w, 0, duration_width, rect.height()),
+            Qt.AlignmentFlag.AlignCenter,
+            "时长",
+        )

@@ -1,14 +1,21 @@
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QLabel, QFileDialog, QHBoxLayout, QPushButton, \
-    QLineEdit, QFrame
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QScrollArea,
+    QFileDialog,
+    QHBoxLayout,
+    QPushButton,
+    QLineEdit,
+    QFrame,
+)
 
 from components.styleSlider import StyleSlider
 from components.textCheckBox import TextCheckBox
 from singleton.config import config
 from singleton.themeManager import theme_manager, ThemeMode, ThemeColor
 from styleTemplate.styleFontLabel import StyleFontLabel
-from uitls.utils import create_style_label
 
 
 def create_divider(color=theme_manager.current.slider_bg, height=1):
@@ -20,14 +27,16 @@ def create_divider(color=theme_manager.current.slider_bg, height=1):
     line.setMidLineWidth(0)
 
     # 使用样式表设置颜色和高度
-    line.setStyleSheet(f"""
+    line.setStyleSheet(
+        f"""
         QFrame {{
             background-color: {color};
             max-height: {height}px;
             min-height: {height}px;
             border: none;
         }}
-    """)
+    """
+    )
     return line
 
 
@@ -40,10 +49,12 @@ class SettingPage(QWidget):
 
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setObjectName("SettingPage")
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             background: transparent;
             border: none;
-        """)
+        """
+        )
 
         # 页面标题
         self.title = StyleFontLabel("设置", font_size=14)
@@ -51,8 +62,12 @@ class SettingPage(QWidget):
         # 页面主要内容区域
         self.main_area = QScrollArea(self)
         self.main_area.setWidgetResizable(True)  # 让内容自动缩放以适应滚动区域宽度
-        self.main_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # 垂直滚动条显示策略：需要时显示
-        self.main_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # 不显示水平滚动条
+        self.main_area.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )  # 垂直滚动条显示策略：需要时显示
+        self.main_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )  # 不显示水平滚动条
 
         self.content_widget = SettingsContentWidget(self)
         self.content_widget.musicDirSelected.connect(self.musicDirSelected)
@@ -106,8 +121,12 @@ class SettingsContentWidget(QWidget):
 
     def init_config(self):
         """初始化配置项"""
-        self.select_music_dir_setting.music_dir_path_line.setText(config.get_value('music_dir'))
-        self.music_volume_setting.volume_slider.setValue(int(config.get_value('volume') * 100))
+        self.select_music_dir_setting.music_dir_path_line.setText(
+            config.get_value("music_dir")
+        )
+        self.music_volume_setting.volume_slider.setValue(
+            int(config.get_value("volume") * 100)
+        )
 
     def update_style(self):
         """更新样式"""
@@ -145,7 +164,8 @@ class SelectMusicDirSetting(QWidget):
 
     def update_style(self):
         self.label.set_color(theme_manager.current.text_bold)
-        self.music_dir_path_line.setStyleSheet(f"""
+        self.music_dir_path_line.setStyleSheet(
+            f"""
             QLineEdit {{
                 border: 1px solid {theme_manager.current.list_item_hover};
                 color: {theme_manager.current.text_normal};
@@ -156,8 +176,10 @@ class SelectMusicDirSetting(QWidget):
                 font-family: Microsoft YaHei;
                 background-color: {theme_manager.current.line_edit_bg};
             }}
-        """)
-        self.select_music_dir_button.setStyleSheet(f"""
+        """
+        )
+        self.select_music_dir_button.setStyleSheet(
+            f"""
             QPushButton {{
                 background-color: {theme_manager.current.button_bg};      /* 背景色 */
                 border: none;                   /* 无边框 */
@@ -176,7 +198,8 @@ class SelectMusicDirSetting(QWidget):
             QPushButton:pressed {{
                 background-color: {theme_manager.current.button_selected};      /* 按下时更深 */
             }}
-        """)
+        """
+        )
 
     @Slot()
     def on_select_music_dir_clicked(self):
@@ -185,7 +208,7 @@ class SelectMusicDirSetting(QWidget):
             self,  # 父组件
             "请选择音乐文件夹",
             "",  # 默认文件夹
-            QFileDialog.Option.ShowDirsOnly  # 只选择文件夹
+            QFileDialog.Option.ShowDirsOnly,  # 只选择文件夹
         )
         if music_dir:
             self.music_dir_path_line.setText(music_dir)
@@ -207,7 +230,9 @@ class MusicVolumeSetting(QWidget):
 
         self.zero_label = StyleFontLabel("0%", font_size=10)
         # self.zero_label.setFixedWidth(20)
-        self.zero_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.zero_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
         self.volume_label = StyleFontLabel("50%", font_size=10)
         self.volume_label.setFixedWidth(30)
 
@@ -249,11 +274,15 @@ class StartUpSetting(QWidget):
         self.label.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # 是否保存上一次播放进度设置
-        self.keep_last_process = TextCheckBox(label=StyleFontLabel("保留上一次播放进度", font_size=12, bold=False))
+        self.keep_last_process = TextCheckBox(
+            label=StyleFontLabel("保留上一次播放进度", font_size=12, bold=False)
+        )
         self.keep_last_process.set_checked(self.setting["keep_last_progress"])
 
         # 启动时是否打乱音乐列表
-        self.shuffle_music_list = TextCheckBox(label=StyleFontLabel("启动时打乱音乐列表", font_size=12, bold=False))
+        self.shuffle_music_list = TextCheckBox(
+            label=StyleFontLabel("启动时打乱音乐列表", font_size=12, bold=False)
+        )
         self.shuffle_music_list.set_checked(self.setting["shuffle_music_list"])
 
         self.init_ui()
@@ -309,7 +338,8 @@ class ThemeBlockButton(QPushButton):
         super().__init__(parent)
         self.color = color
         self.setFixedSize(30, 30)
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QPushButton {{
                 background-color: {color};
                 border-radius: 5px;
@@ -320,7 +350,8 @@ class ThemeBlockButton(QPushButton):
             QPushButton:pressed {{
                 background: {QColor(color).lighter(120).name()};
             }}
-        """)
+        """
+        )
 
 
 class StyleSetting(QWidget):
@@ -332,15 +363,25 @@ class StyleSetting(QWidget):
         self.label = StyleFontLabel("样式设置")
         self.label.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.dark_mode = TextCheckBox(label=StyleFontLabel("暗黑模式", font_size=12, bold=False))
+        self.dark_mode = TextCheckBox(
+            label=StyleFontLabel("暗黑模式", font_size=12, bold=False)
+        )
         self.dark_mode.set_checked(self.setting["dark_mode"])
 
-        self.theme_green = ThemeBlockButton(theme_manager.get_representative_color(ThemeColor.GREEN))
-        self.theme_purple = ThemeBlockButton(theme_manager.get_representative_color(ThemeColor.PURPLE))
+        self.theme_green = ThemeBlockButton(
+            theme_manager.get_representative_color(ThemeColor.GREEN)
+        )
+        self.theme_purple = ThemeBlockButton(
+            theme_manager.get_representative_color(ThemeColor.PURPLE)
+        )
 
         self.dark_mode.stateChanged.connect(self.on_theme_mode_changed)
-        self.theme_green.clicked.connect(lambda: theme_manager.set_theme(None, ThemeColor.GREEN))
-        self.theme_purple.clicked.connect(lambda: theme_manager.set_theme(None, ThemeColor.PURPLE))
+        self.theme_green.clicked.connect(
+            lambda: theme_manager.set_theme(None, ThemeColor.GREEN)
+        )
+        self.theme_purple.clicked.connect(
+            lambda: theme_manager.set_theme(None, ThemeColor.PURPLE)
+        )
 
         self.init_ui()
 
@@ -368,7 +409,6 @@ class StyleSetting(QWidget):
         main_layout.addWidget(self.label, 2)
         main_layout.addLayout(content_layout, 8)
 
-
     def update_style(self):
         self.label.set_color(theme_manager.current.text_bold)
         self.dark_mode.set_color(theme_manager.current.text_bold)
@@ -394,7 +434,9 @@ class ImmersiveModeSetting(QWidget):
         self.setting = config.get_value("immersive_mode_setting")
 
         # 是否开启全景模式
-        self.panoramic_mode = TextCheckBox(label=StyleFontLabel("全景模式", font_size=12, bold=False))
+        self.panoramic_mode = TextCheckBox(
+            label=StyleFontLabel("全景模式", font_size=12, bold=False)
+        )
         self.panoramic_mode.set_checked(self.setting["panoramic_mode"])
         self.panoramic_mode.stateChanged.connect(self.on_panoramic_mode_changed)
 
