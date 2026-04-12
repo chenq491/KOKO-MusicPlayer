@@ -1,31 +1,43 @@
-from PySide6.QtCore import Qt, QPropertyAnimation, QPoint, QEasingCurve, QTimer
+from PySide6.QtCore import QEasingCurve, QPoint, QPropertyAnimation, Qt, QTimer
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+
+from constant import MessageType
 
 
 class Message(QWidget):
     _instances = []  # 存储所有活跃消息，垂直堆叠
+    parent_global = None
 
-    def __init__(self, text: str, duration=2000, msg_type="info", parent=None):
-        super().__init__(parent)
+    @classmethod
+    def set_parent(cls, parent):
+        cls.parent_global = parent
+
+    def __init__(
+        self,
+        text: str,
+        duration=2000,
+        msg_type: MessageType = MessageType.INFO,
+        min_width=300,
+        parent=None,
+    ):
+        super().__init__(parent if parent else Message.parent_global)
         self.setWindowFlag(
-            Qt.FramelessWindowHint |
-            Qt.WindowStaysOnTopHint |
-            Qt.Tool  # 避免任务栏图标
+            Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool  # 避免任务栏图标
         )
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)  # 不抢焦点
 
-        self.setMinimumWidth(300)
+        self.setMinimumWidth(min_width)
 
         # 样式配置
         styles = {
             "info": "#e1f5fe; color: #01579b;",
             "success": "#e8f5e9; color: #2e7d32;",
             "warning": "#fff8e1; color: #ff8f00;",
-            "error": "#ffebee; color: #c62828;"
+            "error": "#ffebee; color: #c62828;",
         }
-        bg_style = styles.get(msg_type, styles["info"])
+        bg_style = styles.get(msg_type.value, styles["info"])
 
         # 创建标签
         self.label = QLabel(text)
@@ -34,12 +46,10 @@ class Message(QWidget):
         self.label.setWordWrap(True)
         self.label.setStyleSheet(f"""
                     QLabel {{
-                        background-color: {bg_style.split(';')[0]};
-                        color: {bg_style.split(';')[1].replace(' color: ', '')};
+                        background-color: {bg_style.split(";")[0]};
+                        color: {bg_style.split(";")[1].replace(" color: ", "")};
                         padding: 12px 20px;
                         border-radius: 6px;
-                        min-width: 200px;
-                        max-width: 400px;
                     }}
                 """)
 
@@ -53,7 +63,7 @@ class Message(QWidget):
 
     def show_message(self):
         """显示消息（外部调用此方法）"""
-        if not self.parent():
+        if not self.parent_global and not self.parent():
             raise ValueError("Message 必须设置 parent（通常是主窗口）")
 
         # 计算位置：在 parent 顶部居中，并考虑已有消息的高度
@@ -102,8 +112,16 @@ class Message(QWidget):
         event.ignore()  # 阻止立即关闭，等动画结束
 
 
-def show_message(text: str, duration=2000, msg_type="info", parent=None):
+def show_message(
+    text: str,
+    duration=2000,
+    msg_type: MessageType = MessageType.INFO,
+    min_width=300,
+    parent=None,
+):
     """全局调用函数，简化使用"""
-    msg = Message(text, parent=parent, duration=duration, msg_type=msg_type)
+    msg = Message(
+        text, parent=parent, duration=duration, msg_type=msg_type, min_width=min_width
+    )
     msg.show_message()
     return msg

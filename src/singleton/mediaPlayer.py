@@ -1,11 +1,11 @@
-from PySide6.QtCore import Slot, QUrl
-from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PySide6.QtCore import QUrl, Slot
+from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 
 from components.message import show_message
+from constant import MessageType
 
 
 class MediaPlayer:
-
     def __init__(self):
         self.media_player = QMediaPlayer()
         self.audio_output = QAudioOutput()
@@ -51,7 +51,7 @@ class MediaPlayer:
     def play_or_paused(self):
         """播放或暂停歌曲"""
         if media_player.is_empty():
-            show_message("请选择歌曲进行播放！", msg_type="warning", parent=self)
+            show_message("请选择歌曲进行播放！", msg_type=MessageType.WARNING)
             return
 
         if self.is_playing():

@@ -1,24 +1,26 @@
-from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, Signal, Slot
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QScrollArea,
     QFileDialog,
-    QHBoxLayout,
-    QPushButton,
-    QLineEdit,
     QFrame,
+    QHBoxLayout,
+    QLineEdit,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
 )
 
+from components.message import show_message
 from components.styleSlider import StyleSlider
 from components.textCheckBox import TextCheckBox
+from constant import MessageType
 from singleton.config import config
-from singleton.themeManager import theme_manager, ThemeMode, ThemeColor
+from singleton.themeManager import ThemeColor, ThemeMode, theme_manager
 from styleTemplate.styleFontLabel import StyleFontLabel
 
 
-def create_divider(color=theme_manager.current.slider_bg, height=1):
+def create_divider(color=theme_manager.current.divider, height=1):
     """创建一个自定义样式的水平分割线"""
     line = QFrame()
     line.setFrameShape(QFrame.Shape.HLine)  # 水平线
@@ -60,14 +62,7 @@ class SettingPage(QWidget):
         self.title = StyleFontLabel("设置", font_size=14)
 
         # 页面主要内容区域
-        self.main_area = QScrollArea(self)
-        self.main_area.setWidgetResizable(True)  # 让内容自动缩放以适应滚动区域宽度
-        self.main_area.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAsNeeded
-        )  # 垂直滚动条显示策略：需要时显示
-        self.main_area.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )  # 不显示水平滚动条
+        self.main_area = SettingContentArea(self)
 
         self.content_widget = SettingsContentWidget(self)
         self.content_widget.musicDirSelected.connect(self.musicDirSelected)
@@ -76,19 +71,103 @@ class SettingPage(QWidget):
 
         self.main_area.setWidget(self.content_widget)
 
-        main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(30, 0, 30, 0)
-        main_layout.setSpacing(0)
+        title_layout = QHBoxLayout()
+        title_layout.setContentsMargins(50, 0, 0, 0)
+        title_layout.addWidget(self.title)
 
-        main_layout.addWidget(self.title)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        main_layout.addLayout(title_layout)
         main_layout.addWidget(self.main_area)
 
-        self.setLayout(main_layout)
         theme_manager.themeChanged.connect(self.update_style)
 
     def update_style(self):
         self.title.set_color(theme_manager.current.text_bold)
         self.content_widget.update_style()
+        self.main_area.update_style()
+
+
+class SettingContentArea(QScrollArea):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWidgetResizable(True)  # 让内容自动缩放以适应滚动区域宽度
+        self.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )  # 垂直滚动条需要时显示
+        self.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )  # 水平滚动条不显示
+
+        # 平滑滚动动画
+        self._animation = QPropertyAnimation(self.verticalScrollBar(), b"value")
+        self._animation.setEasingCurve(QEasingCurve.Type.OutQuad)
+        self._animation.setDuration(300)  # 毫秒
+
+        self.update_style()
+
+    def update_style(self):
+        self.setStyleSheet(
+            f"""
+            /* --- 垂直滚动条 --- */
+            QScrollBar:vertical {{
+                border: none;
+                background-color: {theme_manager.current.list_item_bg};
+                width: 6px;       /* 滚动条宽度 */
+                border-radius: 3px; /* 整体圆角 */
+                margin: 0;
+            }}
+
+            /* --- 滑块 (Handle) --- */
+            QScrollBar::handle:vertical {{
+                background: {theme_manager.current.slider_bg};
+                min-height: 50px;  /* 滑块最小高度，防止太短 */
+                border-radius: 3px; /* 滑块圆角 */
+            }}
+
+            /* 滑块悬停效果 */
+            QScrollBar::handle:vertical:hover {{
+                background: {theme_manager.current.slider_progress};
+            }}
+
+            /* --- 上下箭头按钮 (隐藏) --- */
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0px;       /* 高度设为0即隐藏 */
+                background: none;
+            }}
+
+            /* --- 点击的轨道区域 (上下空白处) --- */
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background: {theme_manager.current.window_bg};
+            }}
+        """
+        )
+
+    def _animate_scroll(self, target):
+        scroll_bar = self.verticalScrollBar()
+        # 限制目标值在有效范围内
+        target = max(0, min(target, scroll_bar.maximum()))
+        if self._animation.state() == QPropertyAnimation.State.Running:
+            self._animation.stop()
+        self._animation.setStartValue(scroll_bar.value())
+        self._animation.setEndValue(target)
+        self._animation.start()
+
+    def wheelEvent(self, event):
+        """实现平滑滚动"""
+        event.accept()  # 消费事件，阻止默认滚动
+
+        delta = event.angleDelta().y()  # 鼠标滚动量，单位是1/8度
+        scroll_bar = self.verticalScrollBar()
+        current_value = scroll_bar.value()  # 当前滚轮值
+
+        pixel_delta = delta / 120
+
+        target_value = current_value - int(200 * pixel_delta)  # 目标值
+
+        self._animate_scroll(target_value)
 
 
 class SettingsContentWidget(QWidget):
@@ -109,14 +188,18 @@ class SettingsContentWidget(QWidget):
         self.immersive_mode_setting = ImmersiveModeSetting(self)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(50, 0, 50, 0)
+        main_layout.setSpacing(0)
 
         main_layout.addWidget(create_divider())
         main_layout.addWidget(self.select_music_dir_setting)
+        main_layout.addWidget(create_divider())
         main_layout.addWidget(self.music_volume_setting)
+        main_layout.addWidget(create_divider())
         main_layout.addWidget(self.startup_setting)
         main_layout.addWidget(create_divider())
         main_layout.addWidget(self.style_setting)
+        main_layout.addWidget(create_divider())
         main_layout.addWidget(self.immersive_mode_setting)
 
     def init_config(self):
@@ -143,8 +226,6 @@ class SelectMusicDirSetting(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setFixedHeight(50)
-
         self.label = StyleFontLabel("音乐文件夹")
 
         self.music_dir_path_line = QLineEdit()
@@ -154,7 +235,7 @@ class SelectMusicDirSetting(QWidget):
         self.select_music_dir_button = QPushButton("选择文件夹")
 
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(0, 40, 0, 40)
         main_layout.addWidget(self.label, 2)
         main_layout.addWidget(self.music_dir_path_line, 7)
         main_layout.addWidget(self.select_music_dir_button, 1)
@@ -213,6 +294,9 @@ class SelectMusicDirSetting(QWidget):
         if music_dir:
             self.music_dir_path_line.setText(music_dir)
             self.dirSelected.emit(music_dir)
+            show_message("设置已更新", min_width=100)
+        else:
+            show_message("文件夹不存在", msg_type=MessageType.ERROR)
 
 
 class MusicVolumeSetting(QWidget):
@@ -243,7 +327,7 @@ class MusicVolumeSetting(QWidget):
         content_layout.addWidget(self.volume_label)
 
         main_layout = QHBoxLayout()
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(0, 40, 0, 40)
         main_layout.setSpacing(0)
 
         main_layout.addWidget(self.label, 2)
@@ -269,7 +353,7 @@ class StartUpSetting(QWidget):
         super().__init__(parent)
 
         self.setting = config.get_value("startup_setting")
-
+        # self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
         self.label = StyleFontLabel("启动设置")
         self.label.setAlignment(Qt.AlignmentFlag.AlignTop)
 
@@ -285,6 +369,12 @@ class StartUpSetting(QWidget):
         )
         self.shuffle_music_list.set_checked(self.setting["shuffle_music_list"])
 
+        # self.setObjectName("StartUpSetting")
+        # self.setStyleSheet(f"""
+        #     #StartUpSetting{{
+        #         border-bottom: 1px solid {theme_manager.current.slider_bg}
+        #     }}
+        # """)
         self.init_ui()
         self.bind()
 
@@ -325,12 +415,14 @@ class StartUpSetting(QWidget):
         """修改是否保留上次播放进度设置"""
         self.setting["keep_last_progress"] = checked
         config.save_value("startup_setting", self.setting)
+        show_message("设置已更新", min_width=100)
 
     @Slot()
     def on_shuffle_music_list_changed(self, checked):
         """修改是否打乱音乐列表设置"""
         self.setting["shuffle_music_list"] = checked
         config.save_value("startup_setting", self.setting)
+        show_message("设置已更新", min_width=100)
 
 
 class ThemeBlockButton(QPushButton):
@@ -386,6 +478,13 @@ class StyleSetting(QWidget):
         self.init_ui()
 
     def init_ui(self):
+
+        dml = QHBoxLayout()
+        dml.setContentsMargins(0, 0, 0, 0)
+        dml.setSpacing(0)
+        dml.addWidget(self.dark_mode)
+        dml.addStretch(1)
+
         theme_layout = QHBoxLayout()
         theme_layout.setContentsMargins(0, 0, 0, 0)
         theme_layout.setSpacing(10)
@@ -399,7 +498,7 @@ class StyleSetting(QWidget):
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(40)
         content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        content_layout.addWidget(self.dark_mode)
+        content_layout.addLayout(dml)
         content_layout.addLayout(theme_layout)
 
         main_layout = QHBoxLayout(self)
@@ -421,6 +520,7 @@ class StyleSetting(QWidget):
             theme_manager.set_theme(ThemeMode.LIGHT, None)
         self.setting["dark_mode"] = checked
         config.save_value("style_setting", self.setting)
+        show_message("设置已更新", min_width=100)
 
     # @Slot()
     # def theme_change(self, theme: Theme):
@@ -431,6 +531,7 @@ class ImmersiveModeSetting(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.label = StyleFontLabel("沉浸模式设置")
+        self.label.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.setting = config.get_value("immersive_mode_setting")
 
         # 是否开启全景模式
@@ -438,22 +539,72 @@ class ImmersiveModeSetting(QWidget):
             label=StyleFontLabel("全景模式", font_size=12, bold=False)
         )
         self.panoramic_mode.set_checked(self.setting["panoramic_mode"])
-        self.panoramic_mode.stateChanged.connect(self.on_panoramic_mode_changed)
+
+        # 背景图片设置
+        self.bg_label = StyleFontLabel("背景图片", font_size=12)
+        self.bg_lightness_label = StyleFontLabel("明暗度", font_size=12, bold=False)
+        self.bg_ambiguity_label = StyleFontLabel("模糊度", font_size=12, bold=False)
+        self.bg_lightness_slider = StyleSlider(Qt.Orientation.Horizontal)
+        self.bg_lightness_slider.setRange(-100, 100)
+        self.bg_lightness_slider.setValue(0)
+        self.bg_ambiguity_slider = StyleSlider(Qt.Orientation.Horizontal)
+        self.bg_ambiguity_slider.setRange(-100, 100)
+        self.bg_ambiguity_slider.setValue(0)
+        self.bg_lightness_number = StyleFontLabel("1.00", font_size=10)
+        self.bg_ambiguity_number = StyleFontLabel("1.00", font_size=10)
 
         self.init_ui()
+        self.bind()
+
+    def bind(self):
+        self.panoramic_mode.stateChanged.connect(self.on_panoramic_mode_changed)
+        self.bg_lightness_slider.valueChanged.connect(self.on_bg_lightness_changed)
+        self.bg_ambiguity_slider.valueChanged.connect(self.on_bg_ambiguity_changed)
 
     def init_ui(self):
+        # 全景模式
         pml = QHBoxLayout()
         pml.setContentsMargins(0, 0, 0, 0)
         pml.setSpacing(0)
         pml.addWidget(self.panoramic_mode)
         pml.addStretch(1)
 
+        # 背景设置
+        bgll = QHBoxLayout()
+        bgll.setContentsMargins(0, 0, 0, 0)
+        bgll.setSpacing(0)
+        bgll.addWidget(self.bg_lightness_label)
+        bgll.addWidget(self.bg_lightness_slider)
+        bgll.addWidget(self.bg_lightness_number)
+        # bgll.addStretch(1)
+        bgal = QHBoxLayout()
+        bgal.setContentsMargins(0, 0, 0, 0)
+        bgal.setSpacing(0)
+        bgal.addWidget(self.bg_ambiguity_label)
+        bgal.addWidget(self.bg_ambiguity_slider)
+        bgal.addWidget(self.bg_ambiguity_number)
+        # bgal.addStretch(1)
+        bgl = QVBoxLayout()
+        bgl.setContentsMargins(0, 0, 0, 0)
+        bgl.setSpacing(10)
+        bgl.addWidget(self.bg_label)
+        bgl.addLayout(bgll)
+        bgl.addLayout(bgal)
+
+        # 内容布局
+        content_layout = QVBoxLayout()
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(40)
+        content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        content_layout.addLayout(pml)
+        content_layout.addLayout(bgl)
+
+        # 主布局
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(0, 40, 0, 40)
         main_layout.setSpacing(0)
         main_layout.addWidget(self.label, 2)
-        main_layout.addLayout(pml, 8)
+        main_layout.addLayout(content_layout, 8)
 
     def update_style(self):
         self.label.set_color(theme_manager.current.text_bold)
@@ -464,3 +615,12 @@ class ImmersiveModeSetting(QWidget):
         """全景模式设置改变"""
         self.setting["panoramic_mode"] = checked
         config.save_value("immersive_mode_setting", self.setting)
+        show_message("设置已更新", min_width=100)
+
+    @Slot()
+    def on_bg_lightness_changed(self, value):
+        self.bg_lightness_number.setText(f"{(value / 100):.2f}")
+
+    @Slot()
+    def on_bg_ambiguity_changed(self, value):
+        self.bg_ambiguity_number.setText(f"{(value / 100):.2f}")

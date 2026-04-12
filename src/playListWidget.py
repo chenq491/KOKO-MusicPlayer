@@ -1,20 +1,30 @@
-from PySide6.QtCore import Signal, QSize, QRect, QPropertyAnimation, QEasingCurve, Qt, Slot
+from PySide6.QtCore import (
+    QEasingCurve,
+    QPropertyAnimation,
+    QRect,
+    QSize,
+    Qt,
+    Signal,
+    Slot,
+)
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QListWidget, QLabel, QVBoxLayout, QListWidgetItem
+from PySide6.QtWidgets import QLabel, QListWidget, QListWidgetItem, QVBoxLayout
+
 from singleton.playListManager import PlayListManager
 
 
 class PlayListPanel(QListWidget):
     """播放列表界面"""
+
     selectMusic = Signal()
 
     def __init__(self, playlist: PlayListManager, parent=None):
         super().__init__(parent)
 
         self.playlist = playlist
-        self.w = int(self.parent().width() * .3)
-        self.h = int(self.parent().height() * .7)
-        self.top = int(self.parent().height() * .1)
+        self.w = int(self.parent().width() * 0.3)
+        self.h = int(self.parent().height() * 0.7)
+        self.top = int(self.parent().height() * 0.1)
 
         self.anim = None
         self.is_showing = False
@@ -55,13 +65,9 @@ class PlayListPanel(QListWidget):
 
     def show_or_hidden(self):
         """展示或隐藏面板"""
-        start_geo = QRect(
-            self.parent().width(), self.top,
-            self.width(), self.height()
-        )
+        start_geo = QRect(self.parent().width(), self.top, self.width(), self.height())
         end_geo = QRect(
-            self.parent().width() - self.width(), self.top,
-            self.width(), self.height()
+            self.parent().width() - self.width(), self.top, self.width(), self.height()
         )
         if self.is_showing:
             # 收起，滑到右侧外
@@ -91,8 +97,10 @@ class PlayListPanel(QListWidget):
         """更新面板的位置"""
         rect = self.parent().rect()
         self.setGeometry(
-            rect.width(), self.top,  # 位置
-            self.width(), self.height()  # 大小
+            rect.width(),
+            self.top,  # 位置
+            self.width(),
+            self.height(),  # 大小
         )
 
     def set_content(self):

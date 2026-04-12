@@ -1,32 +1,32 @@
-from PySide6.QtGui import QCloseEvent, QPainter, QColor, QPixmap
+import sys
+
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer, Slot
+from PySide6.QtGui import QCloseEvent, QColor, QPainter, QPixmap
+from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
-    QWidget,
-    QVBoxLayout,
     QStackedWidget,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Slot, QTimer, Qt, QPropertyAnimation, QEasingCurve
-from PySide6.QtMultimedia import QMediaPlayer
-import sys
 
+from bottomPanel.bottomPanel import BottomPanel
 from components.handleLabel import HandleLabel
+from components.message import Message, show_message
+from constant import MessageType, PlayMode, SongChanged
+from immersiveModePage import ImmersiveModeWidget
+from playListView import PlayListWidget
+from settingPage import SettingPage
 from singleton.config import config
 from singleton.mediaPlayer import media_player
 from singleton.playListManager import PlayListManager
 from singleton.themeManager import ThemeMode, theme_manager
-from playListWidget import PlayListPanel
-from constant import PlayMode, SongChanged
-from immersiveModePage import ImmersiveModeWidget
-from components.message import show_message
-from settingPage import SettingPage
-from bottomPanel.bottomPanel import BottomPanel
 from songList.songListPage import SongListPage
 from titleBar import TitleBar
 
 
 class MusicPlayer(QMainWindow):
-
     def __init__(self):
         super().__init__()
 
@@ -39,6 +39,8 @@ class MusicPlayer(QMainWindow):
         # 隐藏系统标题栏
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         # self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)  # 可选：支持透明背景
+
+        Message.set_parent(self)
 
         self.title_bar = TitleBar(self)
         # 歌曲列表页面
@@ -73,7 +75,8 @@ class MusicPlayer(QMainWindow):
         self.timer.timeout.connect(self.on_timer_timeout)
 
         # 播放列表展示面板
-        self.playlist_panel = PlayListPanel(PlayListManager.get_playlist(), self)
+        # self.playlist_panel = PlayListPanel(PlayListManager.get_playlist(), self)
+        self.playlist_panel = PlayListWidget(self)
         self.playlist_panel.update_geometry()
 
         self.handle_label = HandleLabel(self)
@@ -120,15 +123,15 @@ class MusicPlayer(QMainWindow):
             self.on_play_mode_changed
         )  # 播放模式切换
         self.bottom_panel.playlistButtonClicked.connect(
-            self.playlist_panel.show_or_hidden
+            lambda: self.playlist_panel.show_or_hidden(True)
         )  # 点击播放列表按钮
         self.bottom_panel.pageImmersiveMode.connect(lambda: self.on_page_changed(2))
         self.bottom_panel.location.connect(self.on_song_list_location)
         self.bottom_panel.rectChanged.connect(self.on_bottom_panel_rect_changed)
 
-        self.playlist_panel.selectMusic.connect(
-            self.on_playlist_select_music
-        )  # 播放列表切换歌曲
+        # self.playlist_panel.selectMusic.connect(
+        #     self.on_playlist_select_music
+        # )  # 播放列表切换歌曲
 
         theme_manager.themeChanged.connect(self.update)
         media_player.media_player.playbackStateChanged.connect(
@@ -137,10 +140,10 @@ class MusicPlayer(QMainWindow):
 
     def set_style(self):
         self.setStyleSheet(
-            f"""
-            #mainWindow{{
+            """
+            #mainWindow{
                 border: none;
-            }}
+            }
         """
         )
 
@@ -171,7 +174,7 @@ class MusicPlayer(QMainWindow):
         """播放音乐"""
         song_item = PlayListManager.get_current_song_item()
         # 设置当前歌曲到列表
-        self.playlist_panel.set_current()
+        self.playlist_panel.update_data()
 
         # 更新底部面板
         self.bottom_panel.reset_progress()
@@ -239,6 +242,14 @@ class MusicPlayer(QMainWindow):
         # 保存当前音量
         config.save_value("volume", media_player.get_volume())
 
+    def moveEvent(self, event):
+        super().moveEvent(event)
+        self.playlist_panel.update_geometry()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.playlist_panel.update_geometry()
+
     def paintEvent(self, event, /):
         super().paintEvent(event)
         """
@@ -273,7 +284,7 @@ class MusicPlayer(QMainWindow):
         PlayListManager.update_playlist(self.bottom_panel.get_current_play_mode(False))
 
         # 更新播放列表视图
-        self.playlist_panel.set_content()
+        # self.playlist_panel.set_content()
 
         # 播放音乐
         if not media_player.is_empty():
@@ -325,9 +336,8 @@ class MusicPlayer(QMainWindow):
     def on_play_mode_changed(self, current_mode: PlayMode):
         """更改播放模式"""
         PlayListManager.update_playlist(current_mode)
-        show_message(
-            "播放模式修改成功，播放列表已更新！", msg_type="success", parent=self
-        )
+        self.playlist_panel.update_data()
+        show_message("播放模式修改成功，播放列表已更新！", msg_type=MessageType.SUCCESS)  # noqa: F821
 
     @Slot()
     def on_song_changed_button_clicked(self, song_changed: SongChanged):

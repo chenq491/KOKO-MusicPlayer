@@ -32,8 +32,13 @@ class Theme:
     slider_bg: str
     slider_progress: str
 
+    playlist_bg: str
+    playlist_hover: str
+    playlist_selected: str
+
     line_edit_bg: str
     checkbox_bg: str
+    divider: str
 
     text_light: str
     text_normal: str
@@ -50,14 +55,16 @@ class ThemeManager(QObject):
 
         self._current_mode = ThemeMode(config.get_value(["style_setting", "dark_mode"]))
         self._current_color = None
-        self.current = Theme("", "", "", "", "", "", "", "", "", "", "", "", "", "")
+        self.current = Theme(
+            "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
+        )
 
         self.set_theme(self._current_mode, ThemeColor.GREEN)
 
     def set_theme(self, mode: ThemeMode, color: ThemeColor):
-        if not mode is None:
+        if mode is not None:
             self._current_mode = mode
-        if not color is None:
+        if color is not None:
             self._current_color = color
 
         color = QColor(self.theme_colors[self._current_color.value])
@@ -72,8 +79,12 @@ class ThemeManager(QObject):
                 button_selected=color.lighter(110).name(),
                 slider_bg=color.lighter(120).name(),
                 slider_progress=color.darker(110).name(),
+                playlist_bg=color.name(),
+                playlist_hover=color.name(),
+                playlist_selected=color.name(),
                 line_edit_bg=color.lighter(135).name(),
                 checkbox_bg=color.name(),
+                divider=color.name(),
                 text_light="#7b7b8b",
                 text_normal="#5c6175",
                 text_bold="#4a4c57",
@@ -89,8 +100,12 @@ class ThemeManager(QObject):
                 button_selected=color.darker(105).name(),
                 slider_bg="#404049",
                 slider_progress=color.darker(130).name(),
+                playlist_bg="#2d2d38",
+                playlist_hover="#393944",
+                playlist_selected="#393944",
                 line_edit_bg="#121212",
                 checkbox_bg=color.darker(150).name(),
+                divider="#24242a",
                 text_light="#B4B4B4",
                 text_normal="#CBCBCB",
                 text_bold="#d0d0d1",

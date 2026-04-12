@@ -1,11 +1,18 @@
-from PySide6.QtCore import Qt, Signal, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, Signal
 from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel
+from PySide6.QtWidgets import QHBoxLayout, QWidget
 
+from assets.svg import (
+    close_icon,
+    config_icon,
+    fullscreen_icon,
+    home_icon,
+    min_icon,
+    window_icon,
+)
 from singleton.themeManager import theme_manager
 from styleTemplate.styleFontLabel import StyleFontLabel
 from styleTemplate.svgIconButton import SvgIconButton
-from assets.svg import close_icon, fullscreen_icon, window_icon, min_icon, config_icon, home_icon
 from uitls.utils import create_svg_icon
 
 
@@ -70,7 +77,9 @@ class TitleBar(QWidget):
         self.max_button.clicked.connect(self.toggle_maximize)
         self.close_button.clicked.connect(self.parent.close_smooth)
 
-        theme_manager.themeChanged.connect(lambda :self.title.set_color(theme_manager.current.text_bold))
+        theme_manager.themeChanged.connect(
+            lambda: self.title.set_color(theme_manager.current.text_bold)
+        )
 
     def toggle_maximize(self):
         # TODO 优化一下变量存储
@@ -108,7 +117,10 @@ class TitleBar(QWidget):
                 self.parent.setGeometry(self.window_geo)
                 self.is_maximized = False
 
-            if self.parent.windowState() == Qt.WindowState.WindowMaximized or self.parent.windowState() == Qt.WindowState.WindowFullScreen:
+            if (
+                self.parent.windowState() == Qt.WindowState.WindowMaximized
+                or self.parent.windowState() == Qt.WindowState.WindowFullScreen
+            ):
                 self.parent.showNormal()
                 self.max_button.update_display(False)
             delta = event.position().toPoint() - self.initial_pos
@@ -148,7 +160,9 @@ class MaxButton(SvgIconButton):
 
     def create_icon(self):
         self.fullscreen_button = create_svg_icon(fullscreen_icon, self.normal_color, 18)
-        self.fullscreen_button_hover = create_svg_icon(fullscreen_icon, self.hover_color, 18)
+        self.fullscreen_button_hover = create_svg_icon(
+            fullscreen_icon, self.hover_color, 18
+        )
 
         self.window_button = create_svg_icon(window_icon, self.normal_color, 15)
         self.window_button_hover = create_svg_icon(window_icon, self.hover_color, 15)

@@ -1,13 +1,11 @@
+import random
 from pathlib import Path
 
-from PySide6.QtCore import Signal
-
+from constant import MUSIC_SUFFIX, PlayMode
 from singleton.config import config
-from constant import PlayMode, MUSIC_SUFFIX
 from singleton.globalSignalBus import global_signal_bus
 from songList.songItem import SongItem
 from uitls.utils import range_loop
-import random
 
 
 def load_music_list_in_dir(music_dir):
@@ -21,7 +19,11 @@ def load_music_list_in_dir(music_dir):
     # 获取歌曲文件路径
     files = []
     try:
-        files = [f for f in folder_path.iterdir() if f.is_file() and f.suffix.lower() in MUSIC_SUFFIX]
+        files = [
+            f
+            for f in folder_path.iterdir()
+            if f.is_file() and f.suffix.lower() in MUSIC_SUFFIX
+        ]
     except Exception as e:
         print(f"ERROR: 读取文件夹出错：{e}")
 
@@ -37,6 +39,7 @@ def load_music_list_in_dir(music_dir):
 
 class PlayListManager:
     """播放列表管理"""
+
     _playlist = []  # 索引列表
     _current_play_index = -1
     _song_list = []  # songItem 列表
@@ -44,14 +47,16 @@ class PlayListManager:
 
     @classmethod
     def init(cls):
-        if config.get_value('music_dir') == "":
+        if config.get_value("music_dir") == "":
             return
 
-        cls.set_song_list(load_music_list_in_dir(config.get_value('music_dir')))
-        cls.set_playlist(config.get_value('play_progress')['play_list'])
-        cls.set_current_play_index(config.get_value('play_progress')['current_play_index'])
+        cls.set_song_list(load_music_list_in_dir(config.get_value("music_dir")))
+        cls.set_playlist(config.get_value("play_progress")["play_list"])
+        cls.set_current_play_index(
+            config.get_value("play_progress")["current_play_index"]
+        )
 
-        if config.get_value(['startup_setting', 'shuffle_music_list']):
+        if config.get_value(["startup_setting", "shuffle_music_list"]):
             cls.shuffle_music_list()
 
     @classmethod
@@ -103,8 +108,8 @@ class PlayListManager:
         cls._song_list = []
         cls._current_play_index = -1
         cls._current_song_index = -1
-        if config.get_value('music_dir') != "":
-            cls.set_song_list(load_music_list_in_dir(config.get_value('music_dir')))
+        if config.get_value("music_dir") != "":
+            cls.set_song_list(load_music_list_in_dir(config.get_value("music_dir")))
 
     @classmethod
     def update_playlist(cls, play_mode: PlayMode):
