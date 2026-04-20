@@ -1,12 +1,13 @@
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap, QImage, QPainter, QPainterPath
 from mutagen import File
-from mutagen.mp3 import MP3
 from mutagen.flac import FLAC
+from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
 
 from constant import COVER_SiZE
-from uitls.utils import secs_to_str, draw_rounded_pixmap
+from uitls.path import get_file_path
+from uitls.utils import draw_rounded_pixmap, secs_to_str
 
 
 def get_tag(audio, keys):
@@ -31,8 +32,8 @@ def load_cover_bytes(music_file_path):
         if audio.pictures:
             cover_data = audio.pictures[0].data
     elif isinstance(audio, MP4):  # MP4文件
-        if 'covr' in audio.tags:
-            cover_data = audio['covr'][0]
+        if "covr" in audio.tags:
+            cover_data = audio["covr"][0]
     return cover_data
 
 
@@ -42,9 +43,9 @@ def load_meta_data(music_file_path):
     duration = secs_to_str(audio.info.length)
 
     # 获取通用信息
-    title = get_tag(audio, ['title', 'TIT2', '\xa9nam']) or "未知标题"  # 标题
-    artist = get_tag(audio, ['artist', 'TPE1', '\xa9ART']) or "未知歌手"  # 歌手
-    album = get_tag(audio, ['album', 'TALB', '\xa9alb']) or "未知专辑"  # 专辑
+    title = get_tag(audio, ["title", "TIT2", "\xa9nam"]) or "未知标题"  # 标题
+    artist = get_tag(audio, ["artist", "TPE1", "\xa9ART"]) or "未知歌手"  # 歌手
+    album = get_tag(audio, ["album", "TALB", "\xa9alb"]) or "未知专辑"  # 专辑
 
     # 提取封面(Bytes)
     cover_data = None
@@ -56,8 +57,8 @@ def load_meta_data(music_file_path):
         if audio.pictures:
             cover_data = audio.pictures[0].data
     elif isinstance(audio, MP4):  # MP4文件
-        if 'covr' in audio.tags:
-            cover_data = audio['covr'][0]
+        if "covr" in audio.tags:
+            cover_data = audio["covr"][0]
 
     return title, artist, album, duration, cover_data
 
@@ -69,13 +70,17 @@ class SongItem:
         self.index = index
         self.music_file_path = music_file_path
         # TODO 可以优化cover_bytes项
-        self.title, self.artist, self.album, self.duration, cover_bytes = load_meta_data(music_file_path)
+        self.title, self.artist, self.album, self.duration, cover_bytes = (
+            load_meta_data(music_file_path)
+        )
 
         self.cover = QPixmap()
         self.cover.loadFromData(cover_bytes)
         if self.cover.isNull():
             if self.default is None:
-                self.cover.load("./src/assets/default_cover.png")
+                self.cover.load(
+                    str(get_file_path("src", "assets", "default_cover.png"))
+                )
                 self.default = self.cover
             else:
                 self.cover = self.default
@@ -83,6 +88,6 @@ class SongItem:
             COVER_SiZE,
             COVER_SiZE,
             Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
+            Qt.TransformationMode.SmoothTransformation,
         )
         self.cover = draw_rounded_pixmap(self.cover)

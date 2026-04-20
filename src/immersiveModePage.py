@@ -1,15 +1,15 @@
 import numpy as np
-from PySide6.QtCore import Qt, QTimer, Slot, Signal
-from PySide6.QtGui import QPainter, QColor, QLinearGradient, QPixmap
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PySide6.QtCore import Qt, QTimer, Signal, Slot
+from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPixmap
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
-from songList.songItem import SongItem
-from uitls.audioLoader import AudioFFMLoader
+from singleton.immersiveModeManager import immersive_mode_manager
 from uitls.utils import fft_from_chunk
 
 
 class ImmersiveModeWidget(QWidget):
     """沉浸模式页面"""
+
     backgroundChanged = Signal(QPixmap)
 
     def __init__(self, parent=None):
@@ -23,9 +23,6 @@ class ImmersiveModeWidget(QWidget):
         # 透明背景
         # self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        self.loader_thread = AudioFFMLoader()
-        self.loader_thread.dataLoaded.connect(self.on_data_loaded)
-
         """
         背景层
         """
@@ -34,13 +31,14 @@ class ImmersiveModeWidget(QWidget):
         # 背景标签，展示背景
         self.bg_label = QLabel(self)
         self.bg_label.setScaledContents(False)  # 自动缩放
-        self.bg_pixmap = QPixmap()
 
         """
         内容层
         """
         self.content_widget = QWidget()
-        self.content_widget.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.content_widget.setAttribute(
+            Qt.WidgetAttribute.WA_TranslucentBackground, True
+        )
         # 频谱控件
         self.spectrum_widget = SpectrumWidget(self)
         # 封面控件
@@ -58,15 +56,17 @@ class ImmersiveModeWidget(QWidget):
         main_layout.setSpacing(0)
         main_layout.addWidget(self.content_widget)
 
+        immersive_mode_manager.dataLoaded.connect(self.on_data_loaded)
+
     def resizeEvent(self, event, /):
         # 每次 resize 都更新背景尺寸
         self.bg_label.resize(self.size())
-        self.bg_pixmap = self.bg_pixmap.scaled(
-            self.bg_label.size(),
-            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-            Qt.TransformationMode.SmoothTransformation
-        )
-        self.bg_label.setPixmap(self.bg_pixmap)
+        # bg_pixmap = immersive_mode_manager.get_bg_pixmap().scaled(
+        #     self.bg_label.size(),
+        #     Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+        #     Qt.TransformationMode.SmoothTransformation,
+        # )
+        # self.bg_label.setPixmap(bg_pixmap)
 
         # self.content_widget.resize(self.size())
         super().resizeEvent(event)
@@ -77,31 +77,21 @@ class ImmersiveModeWidget(QWidget):
             self.bg_label.setGeometry(self.rect())
             self._background_initialized = True
 
-        # self.bg_label.setPixmap(self.bg_pixmap)
-        self.backgroundChanged.emit(self.bg_pixmap)
-
         super().showEvent(event)
 
-    def load_audio(self, song_item: SongItem):
-        """加载音频数据"""
-        self.loader_thread.set_item(song_item)
-        self.loader_thread.start()
-
     @Slot()
-    def on_data_loaded(self, result: dict):
-        self.backgroundChanged.emit(result["bg"])
-        self.cover_display_widget.cover.setPixmap(result["cover"])
-        self.bg_pixmap = result["bg"]
-        if self._background_initialized:
-            self.bg_pixmap = self.bg_pixmap.scaled(
-                self.bg_label.size(),
-                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                Qt.TransformationMode.SmoothTransformation
-            )
-            self.bg_label.setPixmap(self.bg_pixmap)
+    def on_data_loaded(self):
+        self.cover_display_widget.cover.setPixmap(immersive_mode_manager.cover)
+        # if self._background_initialized:
+        #     bg_pixmap = immersive_mode_manager.get_bg_pixmap().scaled(
+        #         self.bg_label.size(),
+        #         Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+        #         Qt.TransformationMode.SmoothTransformation,
+        #     )
+        #     self.bg_label.setPixmap(bg_pixmap)
 
-        self.audio = result["audio"]
-        self.sample_rate = result["sample_rate"]
+        self.audio = immersive_mode_manager.audio
+        self.sample_rate = immersive_mode_manager.sample_rate
         self.pos = 0
 
     def update_spectrum_from_position(self, pos_ms):
@@ -120,7 +110,7 @@ class ImmersiveModeWidget(QWidget):
             # 不够的补零
             chunk = np.zeros(self.chunk_size, dtype=np.float32)
             valid = self.audio[start:]
-            chunk[:len(valid)] = valid
+            chunk[: len(valid)] = valid
         else:
             chunk = self.audio[start:end]
 
@@ -136,6 +126,7 @@ class ImmersiveModeWidget(QWidget):
 
 class CoverDisplayWidget(QWidget):
     """封面展示"""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumHeight(500)
@@ -167,7 +158,9 @@ class SpectrumWidget(QWidget):
         # 频谱柱子数量
         self.column_num = 128
 
-        self.current_spectrum = np.zeros(self.column_num, dtype=np.float32)  # 当前显示值
+        self.current_spectrum = np.zeros(
+            self.column_num, dtype=np.float32
+        )  # 当前显示值
         self.target_spectrum = np.zeros(self.column_num, dtype=np.float32)  # 目标值
 
         self.decay_rate = 0.2  # 衰减速率（越小越慢）

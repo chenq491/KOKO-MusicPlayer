@@ -1,6 +1,11 @@
-from PIL.ImageChops import offset
-from PySide6.QtCore import Signal, QPoint, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
-from PySide6.QtWidgets import QStackedWidget, QGraphicsOpacityEffect
+from PySide6.QtCore import (
+    QEasingCurve,
+    QParallelAnimationGroup,
+    QPoint,
+    QPropertyAnimation,
+    Signal,
+)
+from PySide6.QtWidgets import QGraphicsOpacityEffect, QStackedWidget
 
 
 class CenterStackedWidget(QStackedWidget):
@@ -10,7 +15,7 @@ class CenterStackedWidget(QStackedWidget):
         super().__init__(parent)
         self.m_direction = None  # 动画方向
         self.m_duration = 300  # 动画时长：300ms
-        self.m_animation_type = 'slider'  # or 'fade'
+        self.m_animation_type = "slider"  # or 'fade'
         self.m_now = 0  # 当前页面索引
         self.m_next = 0  # 下一个页面索引
         self.m_wrap = False
@@ -32,18 +37,18 @@ class CenterStackedWidget(QStackedWidget):
         elif self.m_wrap:
             self.slide_in_idx(self.count() - 1)
 
-    def slide_in_idx(self, idx, direction = 'next'):
+    def slide_in_idx(self, idx, direction="next"):
         """根据索引切换页面"""
         if idx > self.count() - 1:
-            direction = 'next'
+            direction = "next"
             idx = idx % self.count()
         elif idx < 0:
-            direction = 'prev'
+            direction = "prev"
             idx = (idx + self.count()) % self.count()
 
         self.slide_in_widget(self.widget(idx), direction)
 
-    def slide_in_widget(self, new_widget, direction = 'next'):
+    def slide_in_widget(self, new_widget, direction="next"):
         """滑入新的widget"""
         if self.m_active:
             return
@@ -66,7 +71,7 @@ class CenterStackedWidget(QStackedWidget):
         else:
             offset = QPoint(-width, 0)  # 从左侧进入
 
-        new_widget.setGeometry(0,0,width,height)
+        new_widget.setGeometry(0, 0, width, height)
         new_widget.move(offset)
         new_widget.show()
         new_widget.raise_()

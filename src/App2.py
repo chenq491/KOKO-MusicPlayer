@@ -19,6 +19,7 @@ from immersiveModePage import ImmersiveModeWidget
 from playListView import PlayListWidget
 from settingPage import SettingPage
 from singleton.config import config
+from singleton.immersiveModeManager import immersive_mode_manager
 from singleton.mediaPlayer import media_player
 from singleton.playListManager import PlayListManager
 from singleton.themeManager import ThemeMode, theme_manager
@@ -108,7 +109,7 @@ class MusicPlayer(QMainWindow):
         )  # 选择音乐文件夹
         self.settings_widget.volumeChanged.connect(media_player.set_volume)  # 音量改变
 
-        self.immersive_mode_widget.backgroundChanged.connect(self.on_background_changed)
+        # self.immersive_mode_widget.backgroundChanged.connect(self.on_background_changed)
 
         self.bottom_panel.songProgressChanged.connect(
             self.on_song_progress_changed
@@ -137,6 +138,8 @@ class MusicPlayer(QMainWindow):
         media_player.media_player.playbackStateChanged.connect(
             self.on_playback_state_changed
         )  # 播放状态改变
+        immersive_mode_manager.dataLoaded.connect(self.on_background_changed)
+        immersive_mode_manager.bg_changed.connect(self.on_background_changed)
 
     def set_style(self):
         self.setStyleSheet(
@@ -184,8 +187,8 @@ class MusicPlayer(QMainWindow):
         media_player.play_from_path(song_item.music_file_path)
 
         # 加载沉浸模式数据
-        # immersive_mode_manager.load_data()
-        self.immersive_mode_widget.load_audio(song_item)
+        immersive_mode_manager.load_data(song_item)
+        # self.immersive_mode_widget.load_audio(song_item)
 
     def update_music_progress(self):
         """更新歌曲进度"""
@@ -249,6 +252,8 @@ class MusicPlayer(QMainWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.playlist_panel.update_geometry()
+        self.on_background_changed()
+        self.on_bottom_panel_rect_changed()
 
     def paintEvent(self, event, /):
         super().paintEvent(event)
@@ -257,14 +262,9 @@ class MusicPlayer(QMainWindow):
         """
         painter = QPainter(self)
         painter.fillRect(self.rect(), QColor(theme_manager.current.window_bg))
-        if not self.bg_pixmap.isNull() and config.get_value(
+        if self.stacked_widget.currentIndex() == 2 and config.get_value(
             ["immersive_mode_setting", "panoramic_mode"]
         ):
-            self.bg_pixmap = self.bg_pixmap.scaled(
-                self.size(),
-                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                Qt.TransformationMode.SmoothTransformation,
-            )
             x = (self.width() - self.bg_pixmap.width()) // 2
             y = (self.height() - self.bg_pixmap.height()) // 2
             painter.drawPixmap(x, y, self.bg_pixmap)
@@ -290,11 +290,6 @@ class MusicPlayer(QMainWindow):
         if not media_player.is_empty():
             self.song_click_changed = True
         self.play_music()
-
-    @Slot()
-    def on_media_player_error(self, error, error_string):
-        """音乐播放失败"""
-        print(f"播放错误：{error} - {error_string}")
 
     @Slot()
     def on_playback_state_changed(self, state):
@@ -369,7 +364,6 @@ class MusicPlayer(QMainWindow):
             theme_manager.set_theme(
                 ThemeMode(config.get_value(["style_setting", "dark_mode"])), None
             )
-            self.bg_pixmap = QPixmap()
             self.update(self.rect())
         elif current_index != 2 and page_index == 2:
             if config.get_value(["immersive_mode_setting", "panoramic_mode"]):
@@ -377,11 +371,14 @@ class MusicPlayer(QMainWindow):
             self.update(self.rect())
 
     @Slot()
-    def on_background_changed(self, bg: QPixmap):
+    def on_background_changed(self):
         """主窗口背景改变"""
-        if self.stacked_widget.currentIndex() == 2:
-            self.bg_pixmap = bg
-            self.update(self.rect())
+        self.bg_pixmap = immersive_mode_manager.get_bg_pixmap().scaled(
+            self.size(),
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        self.update(self.rect())
 
     @Slot()
     def on_song_list_location(self):

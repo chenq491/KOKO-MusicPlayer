@@ -1,21 +1,27 @@
-from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QStackedWidget
-)
-from PySide6.QtCore import Slot, QUrl, QTimer, Qt, QPropertyAnimation, QEasingCurve
-from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 import sys
 from pathlib import Path
-from songItem import SongItem
-from singleton.playListManager import PlayListManager, PlayListPanel
-from singleton.config import Config
-from constant import PlayMode, MUSIC_SUFFIX, SongChanged
-from immersiveModePage import ImmersiveModeWidget
-from components.message import show_message
-from settingPage import SettingPage
-from songListPage import SongListPage
-from bottomPanel.bottomPanel import BottomPanel
+
 from progressDisplay import ProgressDisplay
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer, QUrl, Slot
+from PySide6.QtGui import QCloseEvent
+from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
+from songItem import SongItem
+from songListPage import SongListPage
+
+from bottomPanel.bottomPanel import BottomPanel
+from components.message import show_message
+from constant import MUSIC_SUFFIX, PlayMode, SongChanged
+from immersiveModePage import ImmersiveModeWidget
+from settingPage import SettingPage
+from singleton.config import Config
+from singleton.playListManager import PlayListManager, PlayListPanel
 from titleBar import TitleBar
 
 
@@ -107,45 +113,73 @@ class MusicPlayer(QMainWindow):
 
     def bind(self):
         """绑定事件"""
-        self.title_bar.pageConfig.connect(lambda :self.stacked_widget.setCurrentIndex(1))  # 切换到设置页面
-        self.title_bar.pageHome.connect(lambda :self.stacked_widget.setCurrentIndex(0)) # 切换到主页页面
+        self.title_bar.pageConfig.connect(
+            lambda: self.stacked_widget.setCurrentIndex(1)
+        )  # 切换到设置页面
+        self.title_bar.pageHome.connect(
+            lambda: self.stacked_widget.setCurrentIndex(0)
+        )  # 切换到主页页面
 
         self.media_player.errorOccurred.connect(self.on_media_player_error)  # 播放失败
-        self.media_player.playbackStateChanged.connect(self.on_playback_state_changed)  # 播放状态改变
+        self.media_player.playbackStateChanged.connect(
+            self.on_playback_state_changed
+        )  # 播放状态改变
 
-        self.song_list_widget.songItemDoubleClicked.connect(self.on_song_list_item_double_clicked)  # 双击音乐列表歌曲
-        self.song_list_widget.refresh.connect(lambda :self.update_music_list(Config.get_value("music_dir")))
+        self.song_list_widget.songItemDoubleClicked.connect(
+            self.on_song_list_item_double_clicked
+        )  # 双击音乐列表歌曲
+        self.song_list_widget.refresh.connect(
+            lambda: self.update_music_list(Config.get_value("music_dir"))
+        )
 
-        self.settings_widget.musicDirSelected.connect(self.on_music_dir_selected)  # 选择音乐文件夹
+        self.settings_widget.musicDirSelected.connect(
+            self.on_music_dir_selected
+        )  # 选择音乐文件夹
         self.settings_widget.volumeChanged.connect(self.on_volume_changed)  # 音量改变
 
-        self.progress_display.songProgressChanged.connect(self.on_song_progress_changed)  # 歌曲进度条改变
+        self.progress_display.songProgressChanged.connect(
+            self.on_song_progress_changed
+        )  # 歌曲进度条改变
 
-        self.bottom_panel.songChangedButtonClicked.connect(self.on_song_changed_button_clicked)  # 切换歌曲
-        self.bottom_panel.playOrPausedButtonClicked.connect(self.on_play_or_paused)  # 播放/暂停歌曲
-        self.bottom_panel.platModeChanged.connect(self.on_play_mode_changed)  # 播放模式切换
-        self.bottom_panel.playlistButtonClicked.connect(self.playlist_panel.show_or_hidden)  # 点击播放列表按钮
-        self.bottom_panel.pageImmersiveMode.connect(lambda :self.stacked_widget.setCurrentIndex(2))
+        self.bottom_panel.songChangedButtonClicked.connect(
+            self.on_song_changed_button_clicked
+        )  # 切换歌曲
+        self.bottom_panel.playOrPausedButtonClicked.connect(
+            self.on_play_or_paused
+        )  # 播放/暂停歌曲
+        self.bottom_panel.platModeChanged.connect(
+            self.on_play_mode_changed
+        )  # 播放模式切换
+        self.bottom_panel.playlistButtonClicked.connect(
+            self.playlist_panel.show_or_hidden
+        )  # 点击播放列表按钮
+        self.bottom_panel.pageImmersiveMode.connect(
+            lambda: self.stacked_widget.setCurrentIndex(2)
+        )
 
-        self.playlist_panel.selectMusic.connect(self.on_playlist_select_music)  # 播放列表切换歌曲
+        self.playlist_panel.selectMusic.connect(
+            self.on_playlist_select_music
+        )  # 播放列表切换歌曲
 
     def load_data(self):
         """加载设置数据"""
 
         def set_position():
-            self.media_player.setPosition(play_progress['position'])
+            self.media_player.setPosition(play_progress["position"])
             self.update_music_progress()
 
         # 加载配置里的音乐文件夹里的音乐
-        if Config.get_value('music_dir') != "":
-            self.update_music_list(Config.get_value('music_dir'))
-            if Config.get_value(['startup_setting', 'keep_last_progress']) == 0:
+        if Config.get_value("music_dir") != "":
+            self.update_music_list(Config.get_value("music_dir"))
+            if Config.get_value(["startup_setting", "keep_last_progress"]) == 0:
                 # 加载上一次播放进度
-                play_progress = Config.get_value('play_progress')
-                self.playlist.playlist = play_progress['play_list']
-                self.bottom_panel.set_current_play_mode(play_progress['play_mode'])
+                play_progress = Config.get_value("play_progress")
+                self.playlist.playlist = play_progress["play_list"]
+                self.bottom_panel.set_current_play_mode(play_progress["play_mode"])
                 if self.playlist.playlist:
-                    self.playlist.current_play_index = play_progress['current_play_index']
+                    self.playlist.current_play_index = play_progress[
+                        "current_play_index"
+                    ]
                     song_item = self.playlist.get_current_song_item()
                     self.play_music(song_item)
                     self.media_player.pause()
@@ -162,7 +196,11 @@ class MusicPlayer(QMainWindow):
         # 获取歌曲文件路径
         files = []
         try:
-            files = [f for f in folder_path.iterdir() if f.is_file() and f.suffix.lower() in MUSIC_SUFFIX]
+            files = [
+                f
+                for f in folder_path.iterdir()
+                if f.is_file() and f.suffix.lower() in MUSIC_SUFFIX
+            ]
         except Exception as e:
             print(f"ERROR: 读取文件夹出错：{e}")
 
@@ -213,9 +251,9 @@ class MusicPlayer(QMainWindow):
             self.song_list_widget.jump2current(self.playlist.current_song_index)
         # 如果存在播放列表，则更新它
         if self.playlist.playlist:
-            self.playlist.update_playlist(self.bottom_panel.get_current_play_mode(is_index=False))
-
-
+            self.playlist.update_playlist(
+                self.bottom_panel.get_current_play_mode(is_index=False)
+            )
 
     def close_smooth(self):
         """平滑关闭（淡出）"""
@@ -229,20 +267,20 @@ class MusicPlayer(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent):
         """窗口关闭执行操作"""
-        if Config.get_value(['startup_setting', 'keep_last_progress']) == 0:
+        if Config.get_value(["startup_setting", "keep_last_progress"]) == 0:
             # 保存播放进度
             play_progress = {
-                'play_list': self.playlist.playlist,
-                'current_play_index': self.playlist.current_play_index,
-                'position': self.media_player.position(),
-                'play_mode': self.bottom_panel.get_current_play_mode()
+                "play_list": self.playlist.playlist,
+                "current_play_index": self.playlist.current_play_index,
+                "position": self.media_player.position(),
+                "play_mode": self.bottom_panel.get_current_play_mode(),
             }
             Config.save_value("play_progress", play_progress)
 
     @Slot()
     def on_music_dir_selected(self, music_dir):
         """选择了音乐文件夹"""
-        Config.save_value('music_dir', music_dir)
+        Config.save_value("music_dir", music_dir)
         self.update_music_list(music_dir)
 
     @Slot()
@@ -312,7 +350,9 @@ class MusicPlayer(QMainWindow):
     def on_play_mode_changed(self, current_mode: PlayMode):
         """更改播放模式"""
         self.playlist.update_playlist(current_mode)
-        show_message("播放模式修改成功，播放列表已更新！", msg_type="success", parent=self)
+        show_message(
+            "播放模式修改成功，播放列表已更新！", msg_type="success", parent=self
+        )
 
     @Slot()
     def on_song_changed_button_clicked(self, song_changed: SongChanged):

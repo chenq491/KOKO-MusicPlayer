@@ -1,15 +1,23 @@
-from PySide6.QtCore import Signal, Slot, Qt
+from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QApplication, QLabel, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-from styleTemplate.styleFontLabel import StyleFontLabel
-from .progressSlider import ProgressSlider
-from .buttons import PlayModeButton, NextOrPrevButton, PlayPausedButton, PlayListButton, ImmersiveModeButton, \
-    LocationButton
-from constant import SongChanged, PlayMode, COVER_SiZE
-from songList.songItem import SongItem
+from constant import COVER_SiZE, PlayMode, SongChanged
 from singleton.themeManager import theme_manager
-from uitls.utils import ms_to_str, create_style_label
+from songList.songItem import SongItem
+from styleTemplate.styleFontLabel import StyleFontLabel
+from uitls.path import get_file_path
+from uitls.utils import ms_to_str
+
+from .buttons import (
+    ImmersiveModeButton,
+    LocationButton,
+    NextOrPrevButton,
+    PlayListButton,
+    PlayModeButton,
+    PlayPausedButton,
+)
+from .progressSlider import ProgressSlider
 
 
 class BottomPanel(QWidget):
@@ -39,18 +47,23 @@ class BottomPanel(QWidget):
         # 当前播放歌曲封面
         self.current_song_cover = QLabel()
         self.current_song_cover.setFixedWidth(60)  # 设置封面为固定宽度
-        self.current_song_cover.setPixmap(QPixmap("./src/assets/default_cover.png").scaled(
-            COVER_SiZE,
-            COVER_SiZE,
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        ))
+        self.current_song_cover.setPixmap(
+            QPixmap(str(get_file_path("src", "assets", "default_cover.png"))).scaled(
+                COVER_SiZE,
+                COVER_SiZE,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        )
 
         # 当前播放歌曲标题
-        self.current_song_title = StyleFontLabel("歌曲标题", font_size=11,
-                                                 color=theme_manager.current.text_bold)
+        self.current_song_title = StyleFontLabel(
+            "歌曲标题", font_size=11, color=theme_manager.current.text_bold
+        )
         self.current_song_title.setWordWrap(True)
-        self.current_song_artist = StyleFontLabel("歌手", font_size=10, color=theme_manager.current.text_light)
+        self.current_song_artist = StyleFontLabel(
+            "歌手", font_size=10, color=theme_manager.current.text_light
+        )
         self.current_song_artist.setWordWrap(True)
 
         # 选择歌曲模式下拉框
@@ -71,7 +84,9 @@ class BottomPanel(QWidget):
         # 定位按钮
         self.location_button = LocationButton(self)
         # 歌曲时间信息
-        self.time_label = StyleFontLabel("00:00 / 00:00", font_size=11, color=theme_manager.current.text_normal)
+        self.time_label = StyleFontLabel(
+            "00:00 / 00:00", font_size=11, color=theme_manager.current.text_normal
+        )
 
         self.init_ui()
         self.init_style()
@@ -144,13 +159,25 @@ class BottomPanel(QWidget):
     def bind(self):
         """绑定事件"""
         self.play_mode_button.clicked.connect(self.on_play_mode_changed)  # 播放模式切换
-        self.prev_song_button.clicked.connect(self.on_prev_song_button_clicked)  # 上一首
-        self.next_song_button.clicked.connect(self.on_next_song_button_clicked)  # 下一首
+        self.prev_song_button.clicked.connect(
+            self.on_prev_song_button_clicked
+        )  # 上一首
+        self.next_song_button.clicked.connect(
+            self.on_next_song_button_clicked
+        )  # 下一首
         self.play_or_paused_button.clicked.connect(self.on_play_or_paused)  # 播放/暂停
-        self.show_playlist_button.clicked.connect(self.on_playlist_button_clicked)  # 展示音乐列表
-        self.immersive_mode_button.clicked.connect(self.pageImmersiveMode)  # 进入沉浸模式
-        self.location_button.clicked.connect(self.on_location_button_clicked)  # 定位到当前音乐
-        self.progress_slider.valueChanged.connect(self.on_progress_slider_changed)  # 歌曲进度条拖动
+        self.show_playlist_button.clicked.connect(
+            self.on_playlist_button_clicked
+        )  # 展示音乐列表
+        self.immersive_mode_button.clicked.connect(
+            self.pageImmersiveMode
+        )  # 进入沉浸模式
+        self.location_button.clicked.connect(
+            self.on_location_button_clicked
+        )  # 定位到当前音乐
+        self.progress_slider.valueChanged.connect(
+            self.on_progress_slider_changed
+        )  # 歌曲进度条拖动
         theme_manager.themeChanged.connect(self.update_text_color)
 
     def set_current_song(self, song_item: SongItem):
@@ -226,7 +253,10 @@ class BottomPanel(QWidget):
     @Slot()
     def on_play_mode_changed(self):
         """歌曲播放模式改变"""
-        self.set_current_play_mode((self.current_play_mode_index + 1) % len(self.PLAY_MODE_LIST), is_changing=True)
+        self.set_current_play_mode(
+            (self.current_play_mode_index + 1) % len(self.PLAY_MODE_LIST),
+            is_changing=True,
+        )
 
     @Slot()
     def on_location_button_clicked(self):

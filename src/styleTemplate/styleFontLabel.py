@@ -5,8 +5,15 @@ from singleton.themeManager import theme_manager
 
 
 class StyleFontLabel(QLabel):
-    def __init__(self, text, family="Microsoft YaHei", font_size=13, bold=True,
-                 color=theme_manager.current.text_bold, parent=None):
+    def __init__(
+        self,
+        text,
+        family="Microsoft YaHei",
+        font_size=13,
+        bold=True,
+        color=theme_manager.current.text_bold,
+        parent=None,
+    ):
         super().__init__(parent)
 
         font = QFont()

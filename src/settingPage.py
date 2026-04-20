@@ -16,6 +16,7 @@ from components.styleSlider import StyleSlider
 from components.textCheckBox import TextCheckBox
 from constant import MessageType
 from singleton.config import config
+from singleton.immersiveModeManager import immersive_mode_manager
 from singleton.themeManager import ThemeColor, ThemeMode, theme_manager
 from styleTemplate.styleFontLabel import StyleFontLabel
 
@@ -548,18 +549,26 @@ class ImmersiveModeSetting(QWidget):
         self.bg_lightness_slider.setRange(-100, 100)
         self.bg_lightness_slider.setValue(0)
         self.bg_ambiguity_slider = StyleSlider(Qt.Orientation.Horizontal)
-        self.bg_ambiguity_slider.setRange(-100, 100)
-        self.bg_ambiguity_slider.setValue(0)
+        self.bg_ambiguity_slider.setRange(0, 100)
+        self.bg_ambiguity_slider.setValue(30)
         self.bg_lightness_number = StyleFontLabel("1.00", font_size=10)
         self.bg_ambiguity_number = StyleFontLabel("1.00", font_size=10)
+        self.bg_lightness_number.setFixedWidth(50)
+        self.bg_ambiguity_number.setFixedWidth(50)
 
         self.init_ui()
         self.bind()
 
     def bind(self):
         self.panoramic_mode.stateChanged.connect(self.on_panoramic_mode_changed)
-        self.bg_lightness_slider.valueChanged.connect(self.on_bg_lightness_changed)
-        self.bg_ambiguity_slider.valueChanged.connect(self.on_bg_ambiguity_changed)
+        self.bg_lightness_slider.sliderReleased.connect(self.on_bg_lightness_changed)
+        self.bg_lightness_slider.valueChanged.connect(
+            lambda value: self.bg_lightness_number.setText(f"{(value) / 100:.2f}")
+        )
+        self.bg_ambiguity_slider.sliderReleased.connect(self.on_bg_ambiguity_changed)
+        self.bg_ambiguity_slider.valueChanged.connect(
+            lambda value: self.bg_ambiguity_number.setText(f"{(value) / 100:.2f}")
+        )
 
     def init_ui(self):
         # 全景模式
@@ -618,9 +627,13 @@ class ImmersiveModeSetting(QWidget):
         show_message("设置已更新", min_width=100)
 
     @Slot()
-    def on_bg_lightness_changed(self, value):
-        self.bg_lightness_number.setText(f"{(value / 100):.2f}")
+    def on_bg_lightness_changed(self):
+        immersive_mode_manager.bg_lighteness_changed(
+            self.bg_lightness_slider.value() / 100 + 1
+        )
+        show_message("设置已更新", min_width=100)
 
     @Slot()
-    def on_bg_ambiguity_changed(self, value):
-        self.bg_ambiguity_number.setText(f"{(value / 100):.2f}")
+    def on_bg_ambiguity_changed(self):
+        immersive_mode_manager.bg_ambiguity_changed(self.bg_ambiguity_slider.value())
+        show_message("设置已更新", min_width=100)
