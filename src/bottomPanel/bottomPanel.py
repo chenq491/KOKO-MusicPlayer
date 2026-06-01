@@ -1,3 +1,6 @@
+import sys
+from pathlib import Path
+
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QVBoxLayout, QWidget
@@ -9,7 +12,8 @@ from styleTemplate.styleFontLabel import StyleFontLabel
 from uitls.path import get_file_path
 from uitls.utils import ms_to_str
 
-from .buttons import (
+sys.path.append(str(Path(__file__).parent))
+from buttons import (
     ImmersiveModeButton,
     LocationButton,
     NextOrPrevButton,
@@ -17,7 +21,7 @@ from .buttons import (
     PlayModeButton,
     PlayPausedButton,
 )
-from .progressSlider import ProgressSlider
+from progressSlider import ProgressSlider
 
 
 class BottomPanel(QWidget):

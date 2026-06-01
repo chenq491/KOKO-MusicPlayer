@@ -542,32 +542,53 @@ class ImmersiveModeSetting(QWidget):
         self.panoramic_mode.set_checked(self.setting["panoramic_mode"])
 
         # 背景图片设置
+        bg_brightness = self.setting["background_image_brightness"]
+        bg_ambiguity = self.setting["background_image_ambiguity"]
         self.bg_label = StyleFontLabel("背景图片", font_size=12)
-        self.bg_lightness_label = StyleFontLabel("明暗度", font_size=12, bold=False)
+        self.bg_brightness_label = StyleFontLabel("明暗度", font_size=12, bold=False)
         self.bg_ambiguity_label = StyleFontLabel("模糊度", font_size=12, bold=False)
-        self.bg_lightness_slider = StyleSlider(Qt.Orientation.Horizontal)
-        self.bg_lightness_slider.setRange(-100, 100)
-        self.bg_lightness_slider.setValue(0)
+        self.bg_brightness_slider = StyleSlider(Qt.Orientation.Horizontal)
+        self.bg_brightness_slider.setRange(-100, 100)
+        self.bg_brightness_slider.setValue(bg_brightness * 100 - 100)
         self.bg_ambiguity_slider = StyleSlider(Qt.Orientation.Horizontal)
         self.bg_ambiguity_slider.setRange(0, 100)
-        self.bg_ambiguity_slider.setValue(30)
-        self.bg_lightness_number = StyleFontLabel("1.00", font_size=10)
-        self.bg_ambiguity_number = StyleFontLabel("1.00", font_size=10)
+        self.bg_ambiguity_slider.setValue(bg_ambiguity)
+        self.bg_lightness_number = StyleFontLabel(
+            f"{(bg_brightness - 1):.2f}", font_size=10
+        )
+        self.bg_ambiguity_number = StyleFontLabel(
+            f"{(bg_ambiguity / 100):.2f}", font_size=10
+        )
         self.bg_lightness_number.setFixedWidth(50)
         self.bg_ambiguity_number.setFixedWidth(50)
+
+        # 音频频谱设置
+        self.spectrum_label = StyleFontLabel("音频频谱", font_size=12)
+        ## 衰减速率
+        self.sp_decay_label = StyleFontLabel("衰减速率", font_size=12, bold=False)
+        self.sp_decay_slider = StyleSlider(Qt.Orientation.Horizontal)
+        self.sp_decay_slider.setRange(0, 100)
+        self.sp_decay_slider.setValue(20)
+        self.sp_decay_number = StyleFontLabel("0.20", font_size=10)
+        self.sp_decay_number.setFixedWidth(50)
 
         self.init_ui()
         self.bind()
 
     def bind(self):
         self.panoramic_mode.stateChanged.connect(self.on_panoramic_mode_changed)
-        self.bg_lightness_slider.sliderReleased.connect(self.on_bg_lightness_changed)
-        self.bg_lightness_slider.valueChanged.connect(
+        self.bg_brightness_slider.sliderReleased.connect(self.on_bg_brightness_changed)
+        self.bg_brightness_slider.valueChanged.connect(
             lambda value: self.bg_lightness_number.setText(f"{(value) / 100:.2f}")
         )
         self.bg_ambiguity_slider.sliderReleased.connect(self.on_bg_ambiguity_changed)
         self.bg_ambiguity_slider.valueChanged.connect(
             lambda value: self.bg_ambiguity_number.setText(f"{(value) / 100:.2f}")
+        )
+
+        self.sp_decay_slider.sliderReleased.connect(self.on_specturm_decay_changed)
+        self.sp_decay_slider.valueChanged.connect(
+            lambda value: self.sp_decay_number.setText(f"{(value) / 100:.2f}")
         )
 
     def init_ui(self):
@@ -582,8 +603,8 @@ class ImmersiveModeSetting(QWidget):
         bgll = QHBoxLayout()
         bgll.setContentsMargins(0, 0, 0, 0)
         bgll.setSpacing(0)
-        bgll.addWidget(self.bg_lightness_label)
-        bgll.addWidget(self.bg_lightness_slider)
+        bgll.addWidget(self.bg_brightness_label)
+        bgll.addWidget(self.bg_brightness_slider)
         bgll.addWidget(self.bg_lightness_number)
         # bgll.addStretch(1)
         bgal = QHBoxLayout()
@@ -600,6 +621,20 @@ class ImmersiveModeSetting(QWidget):
         bgl.addLayout(bgll)
         bgl.addLayout(bgal)
 
+        # 音频频谱设置
+        spl = QVBoxLayout()
+        spl.setContentsMargins(0, 0, 0, 0)
+        spl.setSpacing(10)
+        spl.addWidget(self.spectrum_label)
+        ## 敏感度
+        spsl = QHBoxLayout()
+        spsl.setContentsMargins(0, 0, 0, 0)
+        spsl.setSpacing(0)
+        spsl.addWidget(self.sp_decay_label)
+        spsl.addWidget(self.sp_decay_slider)
+        spsl.addWidget(self.sp_decay_number)
+        spl.addLayout(spsl)
+
         # 内容布局
         content_layout = QVBoxLayout()
         content_layout.setContentsMargins(0, 0, 0, 0)
@@ -607,6 +642,7 @@ class ImmersiveModeSetting(QWidget):
         content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         content_layout.addLayout(pml)
         content_layout.addLayout(bgl)
+        content_layout.addLayout(spl)
 
         # 主布局
         main_layout = QHBoxLayout(self)
@@ -627,13 +663,24 @@ class ImmersiveModeSetting(QWidget):
         show_message("设置已更新", min_width=100)
 
     @Slot()
-    def on_bg_lightness_changed(self):
-        immersive_mode_manager.bg_lighteness_changed(
-            self.bg_lightness_slider.value() / 100 + 1
-        )
+    def on_bg_brightness_changed(self):
+        value = self.bg_brightness_slider.value() / 100 + 1
+        immersive_mode_manager.bg_lighteness_changed(value)
+        self.setting["background_image_brightness"] = value
+        config.save_value("immersive_mode_setting", self.setting)
         show_message("设置已更新", min_width=100)
 
     @Slot()
     def on_bg_ambiguity_changed(self):
-        immersive_mode_manager.bg_ambiguity_changed(self.bg_ambiguity_slider.value())
+        value = self.bg_ambiguity_slider.value()
+        immersive_mode_manager.bg_ambiguity_changed(value)
+        self.setting["background_image_ambiguity"] = value
+        config.save_value("immersive_mode_setting", self.setting)
+        show_message("设置已更新", min_width=100)
+
+    @Slot()
+    def on_specturm_decay_changed(self):
+        """音频频谱衰减速率改变"""
+        value = self.sp_decay_slider.value()
+        immersive_mode_manager.spectrum_decay_rate_change(value / 100)
         show_message("设置已更新", min_width=100)

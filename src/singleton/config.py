@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+
 from constant import PlayMode
 
 
@@ -19,19 +20,21 @@ class Config:
         else:
             # 先写入默认配置
             self._data = {
-                'music_dir': '',
-                'volume': 0.5,
-                'play_mode': PlayMode.ORDER.value,
-                'startup_setting': {
-                    'keep_last_progress': True,
-                    'shuffle_music_list': False
+                "music_dir": "",
+                "volume": 0.5,
+                "play_mode": PlayMode.ORDER.value,
+                "startup_setting": {
+                    "keep_last_progress": True,
+                    "shuffle_music_list": False,
                 },
-                'style_setting': {
-                    'dark_mode': False,
+                "style_setting": {
+                    "dark_mode": False,
                 },
-                'immersive_mode_setting': {
-                    'panoramic_mode': True,
-                }
+                "immersive_mode_setting": {
+                    "panoramic_mode": True,
+                    "background_image_brightness": 0.5,
+                    "background_image_ambiguity": 30,
+                },
             }
             self.save()
 
@@ -51,5 +54,6 @@ class Config:
     def save_value(self, key, value):
         self._data[key] = value
         self.save()
+
 
 config = Config()

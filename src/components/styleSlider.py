@@ -1,5 +1,5 @@
-from PySide6.QtCore import Qt, QRect, QPoint
-from PySide6.QtGui import QPainter, QPen, QBrush, QColor
+from PySide6.QtCore import QPoint, QRect, Qt
+from PySide6.QtGui import QBrush, QColor, QPainter, QPen, QWheelEvent
 from PySide6.QtWidgets import QSlider
 
 from singleton.themeManager import theme_manager
@@ -19,7 +19,7 @@ class StyleSlider(QSlider):
             self.rect().left() + 20,
             self.rect().top() + ((self.rect().height() - self.groove_height) // 2),
             self.rect().width() - 40,
-            self.groove_height
+            self.groove_height,
         )
 
     def get_ratio(self):
@@ -27,7 +27,9 @@ class StyleSlider(QSlider):
         if self.maximum() == self.minimum():
             progress_ratio = 0.0
         else:
-            progress_ratio = (self.value() - self.minimum()) / (self.maximum() - self.minimum())
+            progress_ratio = (self.value() - self.minimum()) / (
+                self.maximum() - self.minimum()
+            )
         return progress_ratio
 
     def resizeEvent(self, event, /):
@@ -36,7 +38,7 @@ class StyleSlider(QSlider):
             self.rect().left() + 20,
             self.rect().top() + ((self.rect().height() - self.groove_height) // 2),
             self.rect().width() - 40,
-            self.groove_height
+            self.groove_height,
         )
 
     def paintEvent(self, ev, /):
@@ -49,7 +51,7 @@ class StyleSlider(QSlider):
             self.groove_rect.left(),
             self.groove_rect.top(),
             progress_width,
-            self.groove_rect.height()
+            self.groove_rect.height(),
         )
 
         """
@@ -59,9 +61,7 @@ class StyleSlider(QSlider):
         # painter.setPen(Qt.PenStyle.NoPen)
         painter.setPen(QPen(QColor(theme_manager.current.slider_bg), 2))  # 边框
         painter.setBrush(QBrush(QColor(theme_manager.current.slider_bg)))  # 背景
-        painter.drawRoundedRect(
-            self.groove_rect, 5, 5
-        )
+        painter.drawRoundedRect(self.groove_rect, 5, 5)
 
         # 绘制滑槽进度
         painter.setBrush(QBrush(QColor(theme_manager.current.slider_progress)))
@@ -87,3 +87,7 @@ class StyleSlider(QSlider):
         painter.setBrush(QBrush(QColor(255, 255, 255)))
         painter.drawEllipse(QPoint(0, 0), 8, 8)
         painter.restore()
+
+    def wheelEvent(self, event: QWheelEvent):
+        # 直接忽略滚轮事件，不做任何处理
+        event.ignore()

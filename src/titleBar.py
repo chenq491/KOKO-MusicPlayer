@@ -81,6 +81,19 @@ class TitleBar(QWidget):
             lambda: self.title.set_color(theme_manager.current.text_bold)
         )
 
+    def freeze_layout(self):
+        # 挂起布局，暂停所有子控件的几何更新
+        self.parent.layout.setEnabled(False)
+        # 临时关闭自动重绘
+        self.parent.setUpdatesEnabled(False)
+
+    def unfreeze_layout(self):
+        # 恢复布局
+        self.parent.layout.setEnabled(True)
+        # 恢复重绘并强制一次完整更新
+        self.parent.setUpdatesEnabled(True)
+        self.parent.update()
+
     def toggle_maximize(self):
         # TODO 优化一下变量存储
         if self.is_maximized:
@@ -100,9 +113,10 @@ class TitleBar(QWidget):
 
     def resize_animation(self, start_geo, end_geo):
         self.anim = QPropertyAnimation(self.parent, b"geometry")
+
         self.anim.setStartValue(start_geo)
         self.anim.setEndValue(end_geo)
-        self.anim.setDuration(200)
+        self.anim.setDuration(100)
         self.anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
         self.anim.start()
 

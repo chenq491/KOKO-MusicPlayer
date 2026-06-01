@@ -6,6 +6,7 @@ from PIL import Image, ImageEnhance, ImageFilter
 from PySide6.QtCore import QObject, Qt, QThread, Signal, Slot
 from PySide6.QtGui import QImage, QPixmap
 
+from singleton.config import config
 from songList.songItem import SongItem, load_cover_bytes
 from uitls.utils import draw_rounded_pixmap
 
@@ -138,12 +139,19 @@ class ImmersiveModeManager(QObject):
         self.pos = 0
         self.chunk_size = 2048
 
+        # 音频跳动相关设置
+        self.sp_decay_rate = 0.2  # 衰减速率(越小越慢)
+
         # 音乐封面数据
         self.bg = None  # 背景模糊图片
         self.cover = None  # 大图封面
 
-        self.bg_brightness_factor = 0.5
-        self.bg_blur_radiu = 30
+        self.bg_brightness_factor = config.get_value(
+            ["immersive_mode_setting", "background_image_brightness"]
+        )
+        self.bg_blur_radiu = config.get_value(
+            ["immersive_mode_setting", "background_image_ambiguity"]
+        )
 
         self.music_path = None
 
@@ -178,6 +186,9 @@ class ImmersiveModeManager(QObject):
         self.data_loader.request_bg_load.emit(
             self.music_path, self.bg_blur_radiu, self.bg_brightness_factor
         )
+
+    def spectrum_decay_rate_change(self, value):
+        self.sp_decay_rate = value
 
     @Slot()
     def on_data_loaded(self, result: dict):

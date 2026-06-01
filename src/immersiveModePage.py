@@ -1,7 +1,7 @@
 import numpy as np
 from PySide6.QtCore import Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPixmap
-from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from singleton.immersiveModeManager import immersive_mode_manager
 from uitls.utils import fft_from_chunk
@@ -134,16 +134,13 @@ class CoverDisplayWidget(QWidget):
         # self.setStyleSheet("border: 2px solid #5c9ded;")
 
         self.cover = QLabel()
+        self.cover.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.cover.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-        main_layout = QVBoxLayout()
+        main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-
-        main_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-
         main_layout.addWidget(self.cover)
-
-        self.setLayout(main_layout)
 
 
 class SpectrumWidget(QWidget):
@@ -162,8 +159,6 @@ class SpectrumWidget(QWidget):
             self.column_num, dtype=np.float32
         )  # 当前显示值
         self.target_spectrum = np.zeros(self.column_num, dtype=np.float32)  # 目标值
-
-        self.decay_rate = 0.2  # 衰减速率（越小越慢）
 
         # 更新间隔
         self.timer = QTimer()
@@ -195,7 +190,7 @@ class SpectrumWidget(QWidget):
             target = self.target_spectrum[i]
             current = self.current_spectrum[i]
 
-            current += (target - current) * self.decay_rate
+            current += (target - current) * immersive_mode_manager.sp_decay_rate
 
             # 上升快，下降慢
             # if target > current:

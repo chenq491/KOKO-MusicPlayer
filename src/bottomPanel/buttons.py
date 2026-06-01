@@ -1,9 +1,19 @@
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QPushButton
 
-from assets.svg import immersive_mode_icon, playing_icon, paused_icon, next_song_icon, prev_song_icon, play_list_icon, \
-    order_play_mode_icon, random_play_mode_icon, repeat_play_mode_icon, location_icon
-from constant import SongChanged, PlayMode
+from assets.svg import (
+    immersive_mode_icon,
+    location_icon,
+    next_song_icon,
+    order_play_mode_icon,
+    paused_icon,
+    play_list_icon,
+    playing_icon,
+    prev_song_icon,
+    random_play_mode_icon,
+    repeat_play_mode_icon,
+)
+from constant import PlayMode, SongChanged
 from singleton.themeManager import theme_manager
 from styleTemplate.svgIconButton import SvgIconButton
 from uitls.utils import create_svg_icon
@@ -74,50 +84,37 @@ class PlayListButton(SvgIconButton):
 
 
 class PlayModeButton(SvgIconButton):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, current_mode=PlayMode.ORDER):
         super().__init__(parent)
 
         self.setToolTip("顺序播放")
 
-        self.repeat_icon_hover = None
-        self.repeat_icon = None
-        self.random_icon_hover = None
-        self.random_icon = None
-        self.order_icon = None
-        self.order_icon_hover = None
-
-        self.btn_icon = self.order_icon
-        self.hover_icon = self.order_icon_hover
-        self.set_icon()
+        self.current_mode = None
+        self.btn_icon = None
+        self.hover_icon = None
+        self.update_display(current_mode)
 
     def create_icon(self):
-        self.order_icon = create_svg_icon(order_play_mode_icon, self.normal_color, 30)
-        self.order_icon_hover = create_svg_icon(order_play_mode_icon, self.hover_color, 30)
-        self.random_icon = create_svg_icon(random_play_mode_icon, self.normal_color, 30)
-        self.random_icon_hover = create_svg_icon(random_play_mode_icon, self.hover_color, 30)
-        self.repeat_icon = create_svg_icon(repeat_play_mode_icon, self.normal_color, 30)
-        self.repeat_icon_hover = create_svg_icon(repeat_play_mode_icon, self.hover_color, 30)
-
-        self.btn_icon = self.order_icon
-        self.hover_icon = self.order_icon_hover
+        if self.current_mode == PlayMode.ORDER:
+            icon = create_svg_icon(order_play_mode_icon, self.normal_color, 30)
+            icon_hover = create_svg_icon(order_play_mode_icon, self.hover_color, 30)
+        elif self.current_mode == PlayMode.RANDOM:
+            icon = create_svg_icon(random_play_mode_icon, self.normal_color, 30)
+            icon_hover = create_svg_icon(random_play_mode_icon, self.hover_color, 30)
+        elif self.current_mode == PlayMode.REPEAT:
+            icon = create_svg_icon(repeat_play_mode_icon, self.normal_color, 30)
+            icon_hover = create_svg_icon(repeat_play_mode_icon, self.hover_color, 30)
+        self.btn_icon = icon
+        self.hover_icon = icon_hover
 
     def update_display(self, current_mode: PlayMode):
-        if current_mode == PlayMode.ORDER:
-            self.btn_icon = self.order_icon
-            self.hover_icon = self.order_icon_hover
-        elif current_mode == PlayMode.RANDOM:
-            self.btn_icon = self.random_icon
-            self.hover_icon = self.random_icon_hover
-        elif current_mode == PlayMode.REPEAT:
-            self.btn_icon = self.repeat_icon
-            self.hover_icon = self.repeat_icon_hover
+        self.current_mode = current_mode
 
         self.setToolTip(str(current_mode.value))
-        self.setIcon(self.btn_icon)
+        self.set_icon()
 
 
 class ImmersiveModeButton(SvgIconButton):
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -134,7 +131,6 @@ class ImmersiveModeButton(SvgIconButton):
 
 
 class LocationButton(SvgIconButton):
-
     def __init__(self, parent=None):
         super().__init__(parent)
 

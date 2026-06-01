@@ -34,6 +34,9 @@ class MusicPlayer(QMainWindow):
         self.animation = None
         self.song_click_changed = False  # 是否是用户手动点击切换歌曲
 
+        # 强制使用硬件合成（如果系统支持）
+        self.setAttribute(Qt.WA_OpaquePaintEvent)
+
         self.setWindowTitle("音乐播放器")
         self.resize(1200, 800)
 
@@ -126,7 +129,9 @@ class MusicPlayer(QMainWindow):
         self.bottom_panel.playlistButtonClicked.connect(
             lambda: self.playlist_panel.show_or_hidden(True)
         )  # 点击播放列表按钮
-        self.bottom_panel.pageImmersiveMode.connect(lambda: self.on_page_changed(2))
+        self.bottom_panel.pageImmersiveMode.connect(
+            lambda: self.on_page_changed(2)
+        )  # 点击沉浸模式页面
         self.bottom_panel.location.connect(self.on_song_list_location)
         self.bottom_panel.rectChanged.connect(self.on_bottom_panel_rect_changed)
 
@@ -261,6 +266,11 @@ class MusicPlayer(QMainWindow):
         绘制背景
         """
         painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)  # 抗锯齿
+        painter.setRenderHint(
+            QPainter.RenderHint.SmoothPixmapTransform, True
+        )  # 图片缩放平滑
+
         painter.fillRect(self.rect(), QColor(theme_manager.current.window_bg))
         if self.stacked_widget.currentIndex() == 2 and config.get_value(
             ["immersive_mode_setting", "panoramic_mode"]
@@ -396,6 +406,9 @@ class MusicPlayer(QMainWindow):
 if __name__ == "__main__":
     # QApplication.setStyle("Windows")
     app = QApplication(sys.argv)
+    # 设置全局的高DPI和合成属性
+    app.setAttribute(Qt.AA_EnableHighDpiScaling)
+    app.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     PlayListManager.init()  # 初始化播放管理器
 
