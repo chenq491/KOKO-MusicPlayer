@@ -2,7 +2,6 @@ from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, Signal, Slot
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QFileDialog,
-    QFrame,
     QHBoxLayout,
     QLineEdit,
     QPushButton,
@@ -19,28 +18,6 @@ from singleton.config import config
 from singleton.immersiveModeManager import immersive_mode_manager
 from singleton.themeManager import ThemeColor, ThemeMode, theme_manager
 from styleTemplate.styleFontLabel import StyleFontLabel
-
-
-def create_divider(color=theme_manager.current.divider, height=1):
-    """创建一个自定义样式的水平分割线"""
-    line = QFrame()
-    line.setFrameShape(QFrame.Shape.HLine)  # 水平线
-    line.setFrameShadow(QFrame.Shadow.Sunken)  # 可选：Sunken / Plain / Raised
-    line.setLineWidth(0)
-    line.setMidLineWidth(0)
-
-    # 使用样式表设置颜色和高度
-    line.setStyleSheet(
-        f"""
-        QFrame {{
-            background-color: {color};
-            max-height: {height}px;
-            min-height: {height}px;
-            border: none;
-        }}
-    """
-    )
-    return line
 
 
 class SettingPage(QWidget):
@@ -192,15 +169,10 @@ class SettingsContentWidget(QWidget):
         main_layout.setContentsMargins(50, 0, 50, 0)
         main_layout.setSpacing(0)
 
-        main_layout.addWidget(create_divider())
         main_layout.addWidget(self.select_music_dir_setting)
-        main_layout.addWidget(create_divider())
         main_layout.addWidget(self.music_volume_setting)
-        main_layout.addWidget(create_divider())
         main_layout.addWidget(self.startup_setting)
-        main_layout.addWidget(create_divider())
         main_layout.addWidget(self.style_setting)
-        main_layout.addWidget(create_divider())
         main_layout.addWidget(self.immersive_mode_setting)
 
     def init_config(self):
@@ -226,6 +198,8 @@ class SelectMusicDirSetting(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setObjectName("SelectMusicDirSetting")
 
         self.label = StyleFontLabel("音乐文件夹")
 
@@ -245,6 +219,11 @@ class SelectMusicDirSetting(QWidget):
         self.select_music_dir_button.clicked.connect(self.on_select_music_dir_clicked)
 
     def update_style(self):
+        self.setStyleSheet(f"""
+            #SelectMusicDirSetting{{
+                border-bottom: 1px solid {theme_manager.current.divider};
+            }}
+        """)
         self.label.set_color(theme_manager.current.text_bold)
         self.music_dir_path_line.setStyleSheet(
             f"""
@@ -305,6 +284,8 @@ class MusicVolumeSetting(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setObjectName("MusicVolumeSetting")
 
         self.label = StyleFontLabel("播放音量")
 
@@ -314,7 +295,6 @@ class MusicVolumeSetting(QWidget):
         self.volume_slider.valueChanged.connect(self.on_volume_changed)
 
         self.zero_label = StyleFontLabel("0%", font_size=10)
-        # self.zero_label.setFixedWidth(20)
         self.zero_label.setAlignment(
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         )
@@ -335,8 +315,14 @@ class MusicVolumeSetting(QWidget):
         main_layout.addLayout(content_layout, 8)
 
         self.setLayout(main_layout)
+        self.update_style()
 
     def update_style(self):
+        self.setStyleSheet(f"""
+            #MusicVolumeSetting{{
+                border-bottom: 1px solid {theme_manager.current.divider};
+            }}
+        """)
         self.label.set_color(theme_manager.current.text_bold)
         self.zero_label.set_color(theme_manager.current.text_bold)
         self.volume_label.set_color(theme_manager.current.text_bold)
@@ -352,6 +338,8 @@ class StartUpSetting(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setObjectName("StartUpSetting")
 
         self.setting = config.get_value("startup_setting")
         # self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
@@ -378,6 +366,7 @@ class StartUpSetting(QWidget):
         # """)
         self.init_ui()
         self.bind()
+        self.update_style()
 
     def init_ui(self):
         klp_layout = QHBoxLayout()
@@ -402,6 +391,11 @@ class StartUpSetting(QWidget):
         main_layout.addLayout(content_layout, 8)
 
     def update_style(self):
+        self.setStyleSheet(f"""
+            #StartUpSetting{{
+                border-bottom: 1px solid {theme_manager.current.divider};
+            }}
+        """)
         self.label.set_color(theme_manager.current.text_bold)
         self.keep_last_process.set_color(theme_manager.current.text_bold)
         self.shuffle_music_list.set_color(theme_manager.current.text_bold)
@@ -450,6 +444,8 @@ class ThemeBlockButton(QPushButton):
 class StyleSetting(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setObjectName("StyleSetting")
 
         self.setting = config.get_value("style_setting")
 
@@ -477,6 +473,7 @@ class StyleSetting(QWidget):
         )
 
         self.init_ui()
+        self.update_style()
 
     def init_ui(self):
 
@@ -510,6 +507,11 @@ class StyleSetting(QWidget):
         main_layout.addLayout(content_layout, 8)
 
     def update_style(self):
+        self.setStyleSheet(f"""
+            #StyleSetting{{
+                border-bottom: 1px solid {theme_manager.current.divider};
+            }}
+        """)
         self.label.set_color(theme_manager.current.text_bold)
         self.dark_mode.set_color(theme_manager.current.text_bold)
 
@@ -531,6 +533,9 @@ class StyleSetting(QWidget):
 class ImmersiveModeSetting(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setObjectName("ImmersiveModeSetting")
+
         self.label = StyleFontLabel("沉浸模式设置")
         self.label.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.setting = config.get_value("immersive_mode_setting")
@@ -574,6 +579,7 @@ class ImmersiveModeSetting(QWidget):
 
         self.init_ui()
         self.bind()
+        self.update_style()
 
     def bind(self):
         self.panoramic_mode.stateChanged.connect(self.on_panoramic_mode_changed)
@@ -652,6 +658,11 @@ class ImmersiveModeSetting(QWidget):
         main_layout.addLayout(content_layout, 8)
 
     def update_style(self):
+        self.setStyleSheet(f"""
+            #ImmersiveModeSetting{{
+                border-bottom: 1px solid {theme_manager.current.divider};
+            }}
+        """)
         self.label.set_color(theme_manager.current.text_bold)
         self.panoramic_mode.set_color(theme_manager.current.text_bold)
 
