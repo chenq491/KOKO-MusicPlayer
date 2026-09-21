@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from singleton.playListManager import PlayListManager
+from singleton.playListManager import play_list_manager
 from singleton.themeManager import theme_manager
 from styleTemplate.styleFontLabel import StyleFontLabel
 
@@ -35,7 +35,7 @@ class PlayListModel(QAbstractListModel):
     def update_data(self):
         # 提示重置数据，用于及时重绘
         self.beginResetModel()
-        self._data = PlayListManager.get_playlist()
+        self._data = play_list_manager.get_playlist()
         self.endResetModel()
 
     def rowCount(self, /, parent=QModelIndex()):
@@ -47,7 +47,7 @@ class PlayListModel(QAbstractListModel):
             return None
 
         row = index.row()
-        item = PlayListManager.get_song_list()[self._data[row]]
+        item = self._data[row]
 
         if role == Qt.ItemDataRole.DisplayRole:
             # 默认文本显示
@@ -272,7 +272,7 @@ class PlayListView(QListView):
 
     def set_current(self):
         """高亮显示当前音乐"""
-        target = self.model.index(PlayListManager.get_current_play_index())
+        target = self.model.index(play_list_manager.get_current_play_index())
         self.setCurrentIndex(target)
         self.scrollTo(
             target,
@@ -348,6 +348,7 @@ class PlayListWidget(QWidget):
 
         self.overlay = DimOverly(parent, self)
 
+        # 标题栏
         self.playlist_title = QWidget(self)
         self.playlist_title.setFixedHeight(50)
         self.playlist_title.setStyleSheet(
@@ -357,8 +358,10 @@ class PlayListWidget(QWidget):
         title_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_layout.addWidget(StyleFontLabel("播放列表", font_size=14))
 
+        # 列表视图
         self.playlist_view = PlayListView(self)
 
+        # 布局
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 5)
         main_layout.setSpacing(0)
@@ -452,7 +455,7 @@ if __name__ == "__main__":
     # QApplication.setStyle("Windows")
     app = QApplication(sys.argv)
 
-    PlayListManager.init()  # 初始化播放管理器
+    play_list_manager.init()  # 初始化播放管理器
 
     player = TestWindow()
     player.show()

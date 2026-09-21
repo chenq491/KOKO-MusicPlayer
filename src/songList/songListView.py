@@ -13,7 +13,8 @@ from PySide6.QtGui import QBrush, QFontMetrics, QColor, QPen, QPainterPath, QPai
 from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QListView
 
 from singleton.globalSignalBus import global_signal_bus
-from singleton.playListManager import PlayListManager
+from singleton.musicListManager import music_list_manager
+from singleton.playListManager import play_list_manager
 from singleton.themeManager import theme_manager
 
 
@@ -30,7 +31,7 @@ class MusicListModel(QAbstractListModel):
         self.beginResetModel()
 
         # 更新数据
-        data_list = PlayListManager.get_song_list()
+        data_list = music_list_manager.get_song_items()
         self._data = []
         if value is None or value == "":
             self._data = data_list
@@ -45,7 +46,7 @@ class MusicListModel(QAbstractListModel):
 
     def update_data(self):
         self.beginResetModel()
-        self._data = PlayListManager.get_song_list()
+        self._data = music_list_manager.get_song_items()
         self.endResetModel()
 
     def rowCount(self, /, parent=QModelIndex()):
@@ -65,7 +66,7 @@ class MusicListModel(QAbstractListModel):
         elif role == Qt.ItemDataRole.DecorationRole:
             return None, None  # 返回图标
         elif role == Qt.ItemDataRole.UserRole:
-            return item  # 返回完整数据对象
+            return row, item  # 返回完整数据对象
 
         return None
 
@@ -103,8 +104,7 @@ class MusicListItemDelegate(QStyledItemDelegate):
         text_color = QColor(theme_manager.current.text_bold)
 
         # 获取数据
-        data = index.data(Qt.ItemDataRole.UserRole)
-        idx = data.index
+        idx, data = index.data(Qt.ItemDataRole.UserRole)
         title = data.title
         artist = data.artist
         album = data.album
@@ -122,7 +122,7 @@ class MusicListItemDelegate(QStyledItemDelegate):
         )
         font = painter.font()
         font.setBold(True)
-        if idx == PlayListManager.get_current_song_index():
+        if idx == play_list_manager.get_current_song_index():
             font.setPointSize(12)
             painter.setFont(font)
             painter.setPen(text_color)
@@ -326,7 +326,7 @@ class MusicListView(QListView):
 
     def set_current(self):
         """高亮显示当前音乐"""
-        target = self.model.index(PlayListManager.get_current_song_index())
+        target = self.model.index(play_list_manager.get_current_song_index())
         self.setCurrentIndex(target)
 
     def get_current(self):
@@ -342,7 +342,7 @@ class MusicListView(QListView):
     def scroll_to_current(self):
         """跳转到当前音乐"""
         self.scrollTo(
-            self.model.index(PlayListManager.get_current_song_index()),
+            self.model.index(play_list_manager.get_current_song_index()),
             QListView.ScrollHint.PositionAtCenter,
         )
 
@@ -368,5 +368,5 @@ class MusicListView(QListView):
     @Slot()
     def on_item_double_clicked(self, idx):
         """双击音乐事件，播放歌曲"""
-        data = idx.data(Qt.ItemDataRole.UserRole)
-        self.itemDoubleClicked.emit(data.index)
+        row, data = idx.data(Qt.ItemDataRole.UserRole)
+        self.itemDoubleClicked.emit(data.idx)

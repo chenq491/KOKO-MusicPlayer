@@ -1,12 +1,13 @@
 import random
 from pathlib import Path
 
+from Logger import logger
 from constant import MUSIC_SUFFIX, PlayMode
 from singleton.config import config
-from singleton.globalSignalBus import global_signal_bus
-from songList.songItem import SongItem
-from uitls.utils import range_loop
-
+from entity.songItem import SongItem
+from singleton.musicListManager import music_list_manager
+from utils.utils import range_loop
+from typing import List
 
 def load_music_list_in_dir(music_dir):
     if not music_dir:  # 确保文件夹存在
@@ -40,118 +41,80 @@ def load_music_list_in_dir(music_dir):
 class PlayListManager:
     """播放列表管理"""
 
-    _playlist = []  # 索引列表
-    _current_play_index = -1
-    _song_list = []  # songItem 列表
-    _current_song_index = -1
+    def __init__(self):
+        self._playlist: List[SongItem] = []
+        self._current_play_index = -1
+        self._current_song_index = -1
 
-    @classmethod
-    def init(cls):
-        if config.get_value("music_dir") == "":
+        # if config.get_value(["startup_setting", "shuffle_music_list"]):
+        #     self.shuffle_music_list()
+
+    def load_play_list_from_config(self, playlist: list):
+        logger.info(f"load playlist from config")
+        song_items = music_list_manager.get_song_items()
+        self._playlist = [song_items[i] for i in playlist]
+
+    def get_playlist(self, index = False):
+        if index:
+            return [i.idx for i in self._playlist]
+        else:
+            return self._playlist
+
+    def get_current_play_index(self):
+        return self._current_play_index
+
+    def set_current_play_index(self, index: int):
+        self._current_play_index = index
+        if index < 0 or index >= len(self._playlist):
             return
+        self._current_song_index = self._playlist[index].idx
 
-        cls.set_song_list(load_music_list_in_dir(config.get_value("music_dir")))
-        cls.set_playlist(config.get_value("play_progress")["play_list"])
-        cls.set_current_play_index(
-            config.get_value("play_progress")["current_play_index"]
-        )
+    def get_current_song_item(self):
+        return self._playlist[self._current_play_index]
 
-        if config.get_value(["startup_setting", "shuffle_music_list"]):
-            cls.shuffle_music_list()
+    def get_current_song_index(self):
+        return self._current_song_index
 
-    @classmethod
-    def set_playlist(cls, playlist: list):
-        cls._playlist = playlist
+    def set_current_song_index(self, index: int):
+        self._current_song_index = index
 
-    @classmethod
-    def get_playlist(cls):
-        return cls._playlist
+    def reset(self):
+        self._playlist = []
+        # self._song_list = []
+        self._current_play_index = -1
+        self._current_song_index = -1
+        # if config.get_value("music_dir") != "":
+        #     self.set_song_list(load_music_list_in_dir(config.get_value("music_dir")))
 
-    @classmethod
-    def set_song_list(cls, song_list: list):
-        cls._song_list = song_list
-
-    @classmethod
-    def get_song_list(cls):
-        return cls._song_list
-
-    @classmethod
-    def get_current_play_index(cls):
-        return cls._current_play_index
-
-    @classmethod
-    def set_current_play_index(cls, index: int):
-        cls._current_play_index = index
-        if index < 0 or index >= len(cls._playlist):
-            return
-        cls._current_song_index = cls._playlist[index]
-
-    @classmethod
-    def get_current_song_item(cls):
-        return cls._song_list[cls._current_song_index]
-
-    @classmethod
-    def get_current_song_index(cls):
-        return cls._current_song_index
-
-    @classmethod
-    def set_current_song_index(cls, index: int):
-        cls._current_song_index = index
-
-    @classmethod
-    def get_total_song(cls):
-        return len(cls._song_list)
-
-    @classmethod
-    def reset(cls):
-        cls._playlist = []
-        cls._song_list = []
-        cls._current_play_index = -1
-        cls._current_song_index = -1
-        if config.get_value("music_dir") != "":
-            cls.set_song_list(load_music_list_in_dir(config.get_value("music_dir")))
-
-    @classmethod
-    def update_playlist(cls, play_mode: PlayMode):
+    def update_playlist(self, play_mode: PlayMode):
+        logger.info(f"update playlist, current song index: {self._current_song_index + 1}, current play mode: {play_mode.value}")
         if play_mode == PlayMode.ORDER:
             # 顺序播放
-            cls._playlist = range_loop(cls._current_song_index, len(cls._song_list))
+            play_index = range_loop(self._current_song_index, music_list_manager.get_total_song())
+            song_items = music_list_manager.get_song_items()
+            self._playlist = [song_items[i] for i in play_index]
         elif play_mode == PlayMode.RANDOM:
             # 随机播放
-            cls._playlist = range_loop(cls._current_song_index, len(cls._song_list))
-            sublist = cls._playlist[1:]
+            play_index = range_loop(self._current_song_index, music_list_manager.get_total_song())
+            sublist = play_index[1:]
             random.shuffle(sublist)
-            cls._playlist[1:] = sublist
+            play_index = [play_index[0]] + sublist
+            song_items = music_list_manager.get_song_items()
+            self._playlist = [song_items[i] for i in play_index]
         elif play_mode == PlayMode.REPEAT:
             # 单曲循环
-            cls._playlist = [cls._current_song_index]
-        cls._current_play_index = 0
+            self._playlist = [self._playlist[self._current_play_index]]
+        self._current_play_index = 0
 
-    @classmethod
-    def next_song(cls):
+    def next_song(self):
         """下一首歌"""
-        cls.set_current_play_index((cls._current_play_index + 1) % len(cls._playlist))
+        self.set_current_play_index((self._current_play_index + 1) % len(self._playlist))
 
-    @classmethod
-    def previous_song(cls):
+    def previous_song(self):
         """上一首歌"""
-        if cls._current_play_index == 0:
-            cls.set_current_play_index(len(cls._playlist) - 1)
+        if self._current_play_index == 0:
+            self.set_current_play_index(len(self._playlist) - 1)
         else:
-            cls.set_current_play_index(cls._current_play_index - 1)
+            self.set_current_play_index(self._current_play_index - 1)
 
-    @classmethod
-    def shuffle_music_list(cls):
-        """打乱音乐列表"""
-        indices = list(range(len(cls._song_list)))  # 映射索引
-        random.shuffle(indices)  # 打乱索引
-        new_song_list = [0] * len(cls._song_list)
-        for i in range(len(cls._song_list)):
-            song_item = cls._song_list[i]
-            song_item.index = indices[i]
-            new_song_list[indices[i]] = song_item
-            cls._playlist[i] = indices[cls._playlist[i]]
-
-        cls._song_list = new_song_list
-        cls._current_song_index = indices[cls._current_song_index]
-        global_signal_bus.song_list_shuffled_emit()  # 发射信号刷新视图
+play_list_manager = PlayListManager()

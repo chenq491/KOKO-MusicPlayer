@@ -1,6 +1,6 @@
 import re
 import sys
-
+from pathlib import Path
 import numpy as np
 from PySide6.QtCore import QByteArray, Qt, QRect
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont, QPainterPath
@@ -212,6 +212,18 @@ def create_style_label(text, font_size=13, bold=True, color=theme_manager.curren
     label.setFont(font)
     label.setStyleSheet(f"color: {color}")
     return label
+
+def get_file_info(file_path):
+    """
+    获取文件信息
+    :return
+        mtime: 修改时间
+        size: 文件大小
+    """
+    stat_info = Path(file_path).stat()
+    mtime = stat_info.st_mtime
+    size = stat_info.st_size
+    return mtime, size
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

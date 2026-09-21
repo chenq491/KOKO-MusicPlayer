@@ -16,7 +16,7 @@ from assets.svg import (
 from constant import PlayMode, SongChanged
 from singleton.themeManager import theme_manager
 from styleTemplate.svgIconButton import SvgIconButton
-from uitls.utils import create_svg_icon
+from utils.utils import create_svg_icon
 
 
 class PlayPausedButton(QPushButton):

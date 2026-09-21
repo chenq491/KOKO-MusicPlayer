@@ -1,7 +1,7 @@
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtWidgets import QLabel
 from assets.svg import guitar_icon_1
-from uitls.utils import create_svg_icon
+from utils.utils import create_svg_icon
 
 
 class HandleLabel(QLabel):

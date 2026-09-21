@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QCheckBox, QWidget, QHBoxLayout, QLabel, QSizePoli
 
 from singleton.themeManager import theme_manager
 from styleTemplate.styleFontLabel import StyleFontLabel
-from uitls.utils import create_style_label
+from utils.utils import create_style_label
 
 
 class TextCheckBox(QWidget):

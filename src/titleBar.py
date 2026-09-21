@@ -13,7 +13,7 @@ from assets.svg import (
 from singleton.themeManager import theme_manager
 from styleTemplate.styleFontLabel import StyleFontLabel
 from styleTemplate.svgIconButton import SvgIconButton
-from uitls.utils import create_svg_icon
+from utils.utils import create_svg_icon
 
 
 class TitleBar(QWidget):

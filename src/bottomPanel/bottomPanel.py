@@ -7,10 +7,10 @@ from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QVBoxLayout, QW
 
 from constant import COVER_SiZE, PlayMode, SongChanged
 from singleton.themeManager import theme_manager
-from songList.songItem import SongItem
+from entity.songItem import SongItem
 from styleTemplate.styleFontLabel import StyleFontLabel
-from uitls.path import get_file_path
-from uitls.utils import ms_to_str
+from utils.path import get_file_path
+from utils.utils import ms_to_str
 
 sys.path.append(str(Path(__file__).parent))
 from buttons import (

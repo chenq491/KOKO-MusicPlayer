@@ -7,8 +7,9 @@ from PySide6.QtCore import QObject, Qt, QThread, Signal, Slot
 from PySide6.QtGui import QImage, QPixmap
 
 from singleton.config import config
-from songList.songItem import SongItem, load_cover_bytes
-from uitls.utils import draw_rounded_pixmap
+from entity.songItem import SongItem
+from utils.utils import draw_rounded_pixmap
+from utils.music_parser import load_cover_bytes
 
 
 def create_pixmap_from_bytes(image_bytes, pixmap_size) -> QPixmap:
@@ -85,7 +86,6 @@ class DataLoader(QObject):
 
     @Slot()
     def get_full_data(self, path, radius, brightness_factor):
-        print(path)
         if not path:
             return
 

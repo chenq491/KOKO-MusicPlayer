@@ -2,6 +2,8 @@ from PySide6.QtCore import Signal, Qt, QRect, Slot
 from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 
+from Logger import logger
+from singleton.musicListManager import music_list_manager
 from singleton.playListManager import PlayListManager
 from singleton.themeManager import theme_manager
 from .songListToolBar import SongListToolBar
@@ -39,9 +41,10 @@ class SongListPage(QWidget):
 
     def show_music_list(self):
         """显示音乐列表"""
+        logger.info("show music list")
         # self.list_body.loading_widget.start()
         self.list_body.load_data()
-        self.total = PlayListManager.get_total_song()
+        self.total = music_list_manager.get_total_song()
         self.list_title.update_total(self.total)
 
     def set_current(self):

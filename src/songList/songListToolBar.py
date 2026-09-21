@@ -3,10 +3,10 @@ from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton, QComboBox
 
 from assets.svg import refresh_icon, shuffle_icon
-from singleton.playListManager import PlayListManager
+from singleton.musicListManager import music_list_manager
 from styleTemplate.svgIconButton import SvgIconButton
 from singleton.themeManager import theme_manager
-from uitls.utils import create_svg_icon
+from utils.utils import create_svg_icon
 
 
 class SongListToolBar(QWidget):
@@ -29,7 +29,7 @@ class SongListToolBar(QWidget):
         main_layout.setContentsMargins(10, 0, 10, 0)
 
         # self.refresh_button.clicked.connect()
-        self.shuffle_button.clicked.connect(PlayListManager.shuffle_music_list)
+        self.shuffle_button.clicked.connect(music_list_manager.shuffle_music_list)
         self.search_box.searchSignal.connect(self.searchSignal)
 
 

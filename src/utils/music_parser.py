@@ -3,7 +3,7 @@ from mutagen.flac import FLAC
 from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4
 
-from uitls.utils import secs_to_str
+from utils.utils import secs_to_str
 
 
 def get_tag(audio, keys):
@@ -39,7 +39,7 @@ def load_cover_bytes(audio):
     return cover_data
 
 
-def load_meta_data(music_file_path):
+def get_song_info(music_file_path):
     """获取音乐文件的元数据（标题、歌手、专辑、时长、封面）"""
     audio = File(music_file_path)
     duration = secs_to_str(audio.info.length)

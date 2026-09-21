@@ -4,7 +4,7 @@ from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from singleton.immersiveModeManager import immersive_mode_manager
-from uitls.utils import fft_from_chunk
+from utils.utils import fft_from_chunk
 
 
 class ImmersiveModeWidget(QWidget):
