@@ -19,30 +19,33 @@ class ThemeColor(Enum):
 
 @dataclass(frozen=True)
 class Theme:
-    window_bg: str
+    window_bg: str = ""
 
-    list_item_bg: str
-    list_item_hover: str
-    list_item_selected: str
+    list_item_bg: str = ""
+    list_item_hover: str = ""
+    list_item_selected: str = ""
 
-    button_bg: str
-    button_hover: str
-    button_selected: str
+    button_bg: str = ""
+    button_hover: str = ""
+    button_selected: str = ""
 
-    slider_bg: str
-    slider_progress: str
+    slider_bg: str = ""
+    slider_progress: str = ""
 
-    playlist_bg: str
-    playlist_hover: str
-    playlist_selected: str
+    playlist_bg: str = ""
+    playlist_hover: str = ""
+    playlist_selected: str = ""
 
-    line_edit_bg: str
-    checkbox_bg: str
-    divider: str
+    line_edit_bg: str = ""
+    checkbox_bg: str = ""
+    divider: str = ""
 
-    text_light: str
-    text_normal: str
-    text_bold: str
+    text_light: str = ""
+    text_normal: str = ""
+    text_bold: str = ""
+
+    text_theme_normal: str = ""
+    text_theme_light: str = ""
 
 
 class ThemeManager(QObject):
@@ -55,9 +58,7 @@ class ThemeManager(QObject):
 
         self._current_mode = ThemeMode(config.get_value(["style_setting", "dark_mode"]))
         self._current_color = None
-        self.current = Theme(
-            "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
-        )
+        self.current = Theme()
 
         self.set_theme(self._current_mode, ThemeColor.GREEN)
 
@@ -88,6 +89,8 @@ class ThemeManager(QObject):
                 text_light="#7b7b8b",
                 text_normal="#5c6175",
                 text_bold="#4a4c57",
+                text_theme_normal=color.lighter(150).name(),
+                text_theme_light=color.lighter(135).name(),
             )
         else:
             self.current = Theme(
@@ -109,6 +112,8 @@ class ThemeManager(QObject):
                 text_light="#B4B4B4",
                 text_normal="#CBCBCB",
                 text_bold="#d0d0d1",
+                text_theme_normal=color.darker(120).name(),
+                text_theme_light=color.darker(135).name(),
             )
 
         self.themeChanged.emit()

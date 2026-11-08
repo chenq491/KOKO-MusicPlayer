@@ -4,10 +4,9 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout
 
 from Logger import logger
 from singleton.musicListManager import music_list_manager
-from singleton.playListManager import PlayListManager
 from singleton.themeManager import theme_manager
-from .songListToolBar import SongListToolBar
-from .songListView import MusicListView
+from songList.songListToolBar import SongListToolBar
+from songList.songListView import MusicListView
 
 
 class SongListPage(QWidget):
@@ -18,26 +17,27 @@ class SongListPage(QWidget):
 
         # 总歌曲数
         self.total = 0
-
         # 工具栏
         self.tool_bar = SongListToolBar(self)
-
         # 列表头
         self.list_title = ListTitle(self.total, self)
-
         # 列表体
         self.list_body = MusicListView(self)
-        self.list_body.itemDoubleClicked.connect(self.songItemDoubleClicked)
-
         self.current_song_item_widget = None
 
+        self.set_layout()
+        self.bind()
+
+    def set_layout(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(6, 0, 0, 0)
         main_layout.addWidget(self.tool_bar)
         main_layout.addWidget(self.list_title)
         main_layout.addWidget(self.list_body)
 
+    def bind(self):
         self.tool_bar.searchSignal.connect(self.on_search)
+        self.list_body.itemDoubleClicked.connect(self.songItemDoubleClicked)
 
     def show_music_list(self):
         """显示音乐列表"""

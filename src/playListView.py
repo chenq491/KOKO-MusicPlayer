@@ -85,8 +85,6 @@ class PlayListItemDelegate(QStyledItemDelegate):
         elif option.state & QStyle.StateFlag.State_MouseOver:  # 悬停
             painter.fillRect(option.rect, theme_manager.current.playlist_hover)
 
-        text_color = QColor(theme_manager.current.text_bold)
-
         # 获取数据
         data = index.data(Qt.ItemDataRole.UserRole)
         title = data.title
@@ -128,6 +126,13 @@ class PlayListItemDelegate(QStyledItemDelegate):
         text_top = option.rect.top() + self.margin * 2
         text_left = cover_rect.right() + 5
 
+        if data.idx == play_list_manager.get_current_song_index():
+            title_color = QColor(theme_manager.current.text_theme_normal)
+            artist_color = QColor(theme_manager.current.text_theme_light)
+        else:
+            title_color = QColor(theme_manager.current.text_bold)
+            artist_color = QColor(theme_manager.current.text_light)
+
         """
         绘制歌名
         """
@@ -138,7 +143,7 @@ class PlayListItemDelegate(QStyledItemDelegate):
         font.setPointSize(11)
         font.setBold(True)
         painter.setFont(font)
-        painter.setPen(text_color)
+        painter.setPen(title_color)
         # 简单处理文字过长 (添加省略号)
         fm = QFontMetrics(font)
         elided_title = fm.elidedText(
@@ -162,7 +167,7 @@ class PlayListItemDelegate(QStyledItemDelegate):
         font.setBold(False)
         font.setPointSize(10)
         painter.setFont(font)
-        painter.setPen(theme_manager.current.text_light)
+        painter.setPen(artist_color)
         elided_artist = fm.elidedText(
             artist, Qt.TextElideMode.ElideRight, artist_rect.width() - 10
         )
@@ -308,7 +313,7 @@ class PlayListView(QListView):
     def on_item_double_clicked(self, idx):
         """双击音乐事件，播放歌曲"""
         data = idx.data(Qt.ItemDataRole.UserRole)
-        self.itemDoubleClicked.emit(data.index)
+        self.itemDoubleClicked.emit(data.idx)
 
 
 class DimOverly(QWidget):

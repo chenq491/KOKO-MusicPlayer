@@ -326,7 +326,11 @@ class MusicListView(QListView):
 
     def set_current(self):
         """高亮显示当前音乐"""
-        target = self.model.index(play_list_manager.get_current_song_index())
+        song_index = play_list_manager.get_current_song_index()
+        row = music_list_manager.song_items_order[song_index]
+        # TODO 列表index太低效，可以优化
+        target = self.model.index(row)
+        # target = self.model.index(play_list_manager.get_current_song_index())
         self.setCurrentIndex(target)
 
     def get_current(self):
@@ -341,8 +345,10 @@ class MusicListView(QListView):
 
     def scroll_to_current(self):
         """跳转到当前音乐"""
+        song_index = play_list_manager.get_current_song_index()
+        row = music_list_manager.song_items_order[song_index]
         self.scrollTo(
-            self.model.index(play_list_manager.get_current_song_index()),
+            self.model.index(row),
             QListView.ScrollHint.PositionAtCenter,
         )
 

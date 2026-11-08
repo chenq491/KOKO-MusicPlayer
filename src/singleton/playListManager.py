@@ -88,14 +88,15 @@ class PlayListManager:
 
     def update_playlist(self, play_mode: PlayMode):
         logger.info(f"update playlist, current song index: {self._current_song_index + 1}, current play mode: {play_mode.value}")
+        current_song_row = music_list_manager.song_items_order[self._current_song_index]
         if play_mode == PlayMode.ORDER:
             # 顺序播放
-            play_index = range_loop(self._current_song_index, music_list_manager.get_total_song())
+            play_index = range_loop(current_song_row, music_list_manager.get_total_song())
             song_items = music_list_manager.get_song_items()
             self._playlist = [song_items[i] for i in play_index]
         elif play_mode == PlayMode.RANDOM:
             # 随机播放
-            play_index = range_loop(self._current_song_index, music_list_manager.get_total_song())
+            play_index = range_loop(current_song_row, music_list_manager.get_total_song())
             sublist = play_index[1:]
             random.shuffle(sublist)
             play_index = [play_index[0]] + sublist

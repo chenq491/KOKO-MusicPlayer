@@ -11,6 +11,7 @@ from PySide6.QtCore import Qt
 
 from constant import MUSIC_SUFFIX, COVER_SiZE
 from entity.songItem import SongItem
+from singleton.globalSignalBus import global_signal_bus
 from utils.music_parser import get_song_info
 from utils.path import get_file_path, get_music_file_paths_in_dir
 from utils.utils import draw_rounded_pixmap, get_file_info
@@ -116,6 +117,7 @@ class MusicListManager:
         self.music_dir = music_dir
         self.music_db_file = db_file
         self.song_items: List[SongItem] = []
+        self.song_items_order: List[int] = []  # idx->row 对应
         self.is_changed = False  # 与上次相比，音乐目录内容是否改变
 
         with open(str(get_file_path("src", "assets", "default_cover.png")), "rb") as f:
@@ -159,6 +161,7 @@ class MusicListManager:
     def init_music_info_list(self):
         """初始化音乐信息存储，更改音乐目录时调用"""
         self.song_items = []
+        self.song_items_order = []
 
         logger.info("initialize music infomation storage")
         files = get_music_file_paths_in_dir(self.music_dir)
@@ -184,6 +187,7 @@ class MusicListManager:
             song_item = SongItem(idx, music_file_path, info[2], info[3], info[4],info[5], cover)
             self.song_items.append(song_item)
 
+        self.song_items_order = list(range(len(self.song_items)))
         self.create_music_library(data)
 
     def load_music_info_from_db(self):
@@ -224,6 +228,8 @@ class MusicListManager:
                         cover = draw_rounded_pixmap(cover)
                         song_item = SongItem(idx, music_file_path, res["title"], res["artist"], res["album"],res["duration"], cover)
                 self.song_items.append(song_item)
+
+            self.song_items_order = list(range(len(self.song_items)))
             # 添加新增的歌曲数据
             db.insert_batch(data)
             # 清空不存在的歌曲数据
@@ -249,19 +255,22 @@ class MusicListManager:
 
     def shuffle_music_list(self):
         """打乱音乐列表"""
-        pass
-        # indices = list(range(len(self.song_items)))  # 映射索引
-        # random.shuffle(indices)  # 打乱索引
-        # new_song_list = [0] * len(self.song_items)
-        # for i in range(len(self.song_items)):
-        #     song_item = self.song_items[i]
-        #     song_item.index = indices[i]
-        #     new_song_list[indices[i]] = song_item
-        #     self._playlist[i] = indices[self._playlist[i]]
-        #
-        # self._song_list = new_song_list
-        # self._current_song_index = indices[self._current_song_index]
-        # global_signal_bus.song_list_shuffled_emit()  # 发射信号刷新视图
+        indices = list(range(len(self.song_items)))
+        random.shuffle(indices)
+        idx2row = [0] * len(self.song_items)
+        for row, idx in enumerate(indices):
+            idx2row[idx] = row
+        new_items = [self.song_items[self.song_items_order[indices[i]]] for i in range(len(self.song_items))]
+        self.song_items = new_items
+        self.song_items_order = idx2row
+        # indices = self.song_items_order.copy()
+        # random.shuffle(indices)
+        # self.song_items = [self.song_items[i] for i in indices]
+        # self.song_items_order = [0] * len(self.song_items)
+        # for new_idx, old_idx in enumerate(indices):
+        #     self.song_items_order[old_idx] = new_idx
+
+        global_signal_bus.song_list_shuffled_emit()  # 发射信号刷新视图
 
     def get_total_song(self):
         return len(self.song_items)
