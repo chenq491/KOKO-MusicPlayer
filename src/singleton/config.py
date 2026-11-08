@@ -29,6 +29,7 @@ class Config:
                 },
                 "style_setting": {
                     "dark_mode": False,
+                    "theme_color": "blue",
                 },
                 "immersive_mode_setting": {
                     "panoramic_mode": True,
@@ -48,6 +49,9 @@ class Config:
         else:
             temp = self._data
             for k in key:
+                # 旧版本的配置文件里可能缺少某一层，这里保持「读不到就返回 None」
+                if not isinstance(temp, dict):
+                    return None
                 temp = temp.get(k)
             return temp
 

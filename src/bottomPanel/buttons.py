@@ -22,9 +22,10 @@ from utils.utils import create_svg_icon
 class PlayPausedButton(QPushButton):
     def __init__(self, parent=None):
         super().__init__(parent)
-        # 播放图标和暂停图标
-        self.playing_icon = create_svg_icon(playing_icon, "#ffffff", 20)
-        self.paused_icon = create_svg_icon(paused_icon, "#ffffff", 30)
+        # 播放图标和暂停图标（颜色跟随主题的「主色上的内容色」）
+        self.is_playing = False
+        self.playing_icon = None
+        self.paused_icon = None
 
         # 设置按钮为圆形
         self.setFixedSize(50, 50)
@@ -39,16 +40,25 @@ class PlayPausedButton(QPushButton):
     def update_style(self):
         self.setStyleSheet(f"""
             QPushButton{{
-                background-color: {theme_manager.current.button_bg};
+                background-color: {theme_manager.current.accent};
                 border: none;
                 border-radius: 25px;
             }}
             QPushButton:hover{{
-                background-color: {theme_manager.current.button_hover};
+                background-color: {theme_manager.current.accent_hover};
+            }}
+            QPushButton:pressed{{
+                background-color: {theme_manager.current.accent_active};
             }}
         """)
+        # 主色背景上的图标要用对比色，换主题时需要重新生成
+        icon_color = theme_manager.current.on_accent
+        self.playing_icon = create_svg_icon(playing_icon, icon_color, 20)
+        self.paused_icon = create_svg_icon(paused_icon, icon_color, 30)
+        self.update_icon(self.is_playing)
 
     def update_icon(self, is_playing: bool):
+        self.is_playing = is_playing
         if is_playing:
             self.setIcon(self.paused_icon)
         else:

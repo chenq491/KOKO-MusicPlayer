@@ -30,6 +30,9 @@ class TextCheckBox(QWidget):
 
         # 信号连接
         self.logic_cb.stateChanged.connect(self._on_state_changed)
+        theme_manager.themeChanged.connect(
+            lambda: self._update_style(self.is_checked())
+        )
 
         # 布局
         main_layout = QHBoxLayout(self)
@@ -40,8 +43,10 @@ class TextCheckBox(QWidget):
         main_layout.addWidget(self.label_text)
         main_layout.addStretch()
 
-    def set_indicator_style(self, size=18, border_color=theme_manager.current.text_normal, border_width=1):
-        """设置勾选框基础样式"""
+    def set_indicator_style(self, size=18, border_color=None, border_width=1):
+        """设置勾选框基础样式（border_color 默认取当前主题的次要文字色）"""
+        if border_color is None:
+            border_color = theme_manager.current.text_muted
         self.label_indicator.setFixedSize(size, size)
         self.label_indicator.setStyleSheet(f"""
             border: {border_width}px solid {border_color};
@@ -71,13 +76,14 @@ class TextCheckBox(QWidget):
 
     def _update_style(self, is_checked):
         """根据状态更新样式（填充颜色 + 对勾）"""
+        theme = theme_manager.current
         if is_checked:
-            # 选中状态：填充蓝色背景，显示对勾字符
+            # 选中状态：填充主色背景，显示对勾字符
             self.label_indicator.setStyleSheet(f"""
-                border: 1px solid {theme_manager.current.checkbox_bg};
+                border: 1px solid {theme.accent};
                 border-radius: 4px;
-                background-color: {theme_manager.current.checkbox_bg};
-                color: white;
+                background-color: {theme.accent};
+                color: {theme.on_accent};
                 font-size: 14px;
                 font-weight: bold;
             """)
@@ -85,7 +91,7 @@ class TextCheckBox(QWidget):
         else:
             # 未选中状态：透明背景，无文字
             self.label_indicator.setStyleSheet(f"""
-                border: 1px solid {theme_manager.current.text_normal};
+                border: 1px solid {theme.text_muted};
                 border-radius: 4px;
                 background-color: transparent;
             """)
@@ -100,7 +106,7 @@ class TextCheckBox(QWidget):
         # 只有在未选中时才改变颜色
         if not self.is_checked():
             self.label_indicator.setStyleSheet(f"""
-                border: 1px solid {theme_manager.current.text_bold};
+                border: 1px solid {theme_manager.current.text_accent};
                 border-radius: 4px;
                 background-color: transparent;
             """)
@@ -109,7 +115,7 @@ class TextCheckBox(QWidget):
         """鼠标离开时：恢复边框颜色"""
         if not self.is_checked():
             self.label_indicator.setStyleSheet(f"""
-                border: 1px solid {theme_manager.current.text_normal};
+                border: 1px solid {theme_manager.current.text_muted};
                 border-radius: 4px;
                 background-color: transparent;
             """)

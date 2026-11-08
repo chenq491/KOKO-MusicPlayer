@@ -1,6 +1,6 @@
 import sys
 
-from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer, Slot
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, QPoint, QRect, Qt, QTimer, Slot
 from PySide6.QtGui import QCloseEvent, QColor, QPainter, QPixmap
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtWidgets import (
@@ -26,6 +26,7 @@ from singleton.playListManager import play_list_manager
 from singleton.themeManager import ThemeMode, theme_manager
 from songList.songListPage import SongListPage
 from singleton.musicListManager import music_list_manager
+from styleTemplate.cardPainter import draw_card
 from titleBar import TitleBar
 
 
@@ -221,7 +222,7 @@ class MusicPlayer(QMainWindow):
         if duration == 0:
             self.handle_label.set_geometry(0)
         else:
-            self.handle_label.set_geometry(int((position / duration) * self.width()))
+            self.handle_label.set_geometry(position / duration)
 
     def update_music_list(self):
         """更新音乐列表"""
@@ -275,7 +276,7 @@ class MusicPlayer(QMainWindow):
     def paintEvent(self, event, /):
         super().paintEvent(event)
         """
-        绘制背景
+        绘制背景：页面底色 + 内容卡片
         """
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)  # 抗锯齿
@@ -283,13 +284,37 @@ class MusicPlayer(QMainWindow):
             QPainter.RenderHint.SmoothPixmapTransform, True
         )  # 图片缩放平滑
 
-        painter.fillRect(self.rect(), QColor(theme_manager.current.window_bg))
-        if self.stacked_widget.currentIndex() == 2 and config.get_value(
-                ["immersive_mode_setting", "panoramic_mode"]
-        ):
-            x = (self.width() - self.bg_pixmap.width()) // 2
-            y = (self.height() - self.bg_pixmap.height()) // 2
-            painter.drawPixmap(x, y, self.bg_pixmap)
+        theme = theme_manager.current
+        painter.fillRect(self.rect(), QColor(theme.page_bg))
+
+        if self.stacked_widget.currentIndex() == 2:
+            # 沉浸模式是全屏图片页，不套卡片
+            if config.get_value(["immersive_mode_setting", "panoramic_mode"]):
+                x = (self.width() - self.bg_pixmap.width()) // 2
+                y = (self.height() - self.bg_pixmap.height()) // 2
+                painter.drawPixmap(x, y, self.bg_pixmap)
+            return
+
+        # 内容区与底部控制面板各一张白色圆角卡片（Mizuki 式的分层观感）
+        draw_card(
+            painter,
+            self.widget_rect(self.stacked_widget).adjusted(10, 0, -10, -6),
+            fill=theme.surface,
+            border=theme.divider,
+            shadow=theme.shadow,
+        )
+        draw_card(
+            painter,
+            self.widget_rect(self.bottom_panel).adjusted(10, 2, -10, -10),
+            fill=theme.surface,
+            border=theme.divider,
+            shadow=theme.shadow,
+        )
+
+    def widget_rect(self, widget) -> QRect:
+        """子控件在主窗口坐标系下的矩形"""
+        top_left = widget.mapTo(self, QPoint(0, 0))
+        return QRect(top_left, widget.size())
 
     @Slot()
     def on_music_dir_selected(self, music_dir):
@@ -349,9 +374,8 @@ class MusicPlayer(QMainWindow):
     def on_song_progress_changed(self, value):
         """改变歌曲进度"""
         media_player.set_position(value)
-        self.handle_label.set_geometry(
-            int(value / media_player.get_duration() * self.width())
-        )
+        duration = media_player.get_duration()
+        self.handle_label.set_geometry(value / duration if duration else 0)
 
     @Slot()
     def on_play_mode_changed(self, current_mode: PlayMode):
@@ -416,6 +440,7 @@ class MusicPlayer(QMainWindow):
     @Slot()
     def on_bottom_panel_rect_changed(self):
         self.handle_label.update_bp_rect(self.bottom_panel)
+        self.handle_label.update_bar_rect(self.bottom_panel.progress_slider)
         self.update_music_progress()
 
 

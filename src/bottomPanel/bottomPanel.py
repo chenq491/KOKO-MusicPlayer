@@ -109,11 +109,14 @@ class BottomPanel(QWidget):
         current_song_info.addWidget(self.current_song_artist)
 
         left_layout = QHBoxLayout()
+        left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(self.current_song_cover)
         left_layout.addLayout(current_song_info)
         left_layout.addStretch(1)
 
-        """中间布局"""
+        """
+        中间布局
+        """
         center_layout = QHBoxLayout()
         center_layout.addWidget(self.play_mode_button)
         center_layout.addWidget(self.prev_song_button)
@@ -146,7 +149,8 @@ class BottomPanel(QWidget):
         添加上进度条
         """
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        # 左右多留一点，进度条两端（含那把“吉他”指针）不会顶到卡片圆角
+        layout.setContentsMargins(28, 5, 28, 0)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.progress_slider)
         layout.addLayout(main_layout)

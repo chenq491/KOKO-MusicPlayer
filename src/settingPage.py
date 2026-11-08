@@ -3,6 +3,7 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QPushButton,
     QScrollArea,
@@ -50,11 +51,12 @@ class SettingPage(QWidget):
         self.main_area.setWidget(self.content_widget)
 
         title_layout = QHBoxLayout()
-        title_layout.setContentsMargins(50, 0, 0, 0)
+        title_layout.setContentsMargins(26, 0, 0, 0)
         title_layout.addWidget(self.title)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        # 外层卡片由主窗口绘制，这里留出卡片内边距
+        main_layout.setContentsMargins(18, 10, 18, 16)
         main_layout.setSpacing(0)
         main_layout.addLayout(title_layout)
         main_layout.addWidget(self.main_area)
@@ -87,12 +89,13 @@ class SettingContentArea(QScrollArea):
         self.update_style()
 
     def update_style(self):
+        theme = theme_manager.current
         self.setStyleSheet(
             f"""
             /* --- 垂直滚动条 --- */
             QScrollBar:vertical {{
                 border: none;
-                background-color: {theme_manager.current.list_item_bg};
+                background: transparent;
                 width: 6px;       /* 滚动条宽度 */
                 border-radius: 3px; /* 整体圆角 */
                 margin: 0;
@@ -100,14 +103,14 @@ class SettingContentArea(QScrollArea):
 
             /* --- 滑块 (Handle) --- */
             QScrollBar::handle:vertical {{
-                background: {theme_manager.current.slider_bg};
+                background: {theme.scrollbar};
                 min-height: 50px;  /* 滑块最小高度，防止太短 */
                 border-radius: 3px; /* 滑块圆角 */
             }}
 
             /* 滑块悬停效果 */
             QScrollBar::handle:vertical:hover {{
-                background: {theme_manager.current.slider_progress};
+                background: {theme.scrollbar_hover};
             }}
 
             /* --- 上下箭头按钮 (隐藏) --- */
@@ -118,7 +121,7 @@ class SettingContentArea(QScrollArea):
 
             /* --- 点击的轨道区域 (上下空白处) --- */
             QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
-                background: {theme_manager.current.window_bg};
+                background: transparent;
             }}
         """
         )
@@ -219,32 +222,33 @@ class SelectMusicDirSetting(QWidget):
         self.select_music_dir_button.clicked.connect(self.on_select_music_dir_clicked)
 
     def update_style(self):
+        theme = theme_manager.current
         self.setStyleSheet(f"""
             #SelectMusicDirSetting{{
-                border-bottom: 1px solid {theme_manager.current.divider};
+                border-bottom: 1px solid {theme.divider};
             }}
         """)
-        self.label.set_color(theme_manager.current.text_bold)
+        self.label.set_color(theme.text_strong)
         self.music_dir_path_line.setStyleSheet(
             f"""
             QLineEdit {{
-                border: 1px solid {theme_manager.current.list_item_hover};
-                color: {theme_manager.current.text_normal};
+                border: 1px solid {theme.divider};
+                color: {theme.text_body};
                 border-radius: 10px;
                 padding: 4px 6px;
                 font-size: 14px;
                 font-weight: bold;
                 font-family: Microsoft YaHei;
-                background-color: {theme_manager.current.line_edit_bg};
+                background-color: {theme.input_bg};
             }}
         """
         )
         self.select_music_dir_button.setStyleSheet(
             f"""
             QPushButton {{
-                background-color: {theme_manager.current.button_bg};      /* 背景色 */
+                background-color: {theme.button_bg};      /* 软按钮底色 */
                 border: none;                   /* 无边框 */
-                color: {theme_manager.current.text_bold};                   /* 文字颜色 */
+                color: {theme.text_accent};                   /* 文字颜色 */
                 padding: 8px 20px;             /* 内边距 */
                 text-align: center;
                 text-decoration: none;
@@ -254,10 +258,10 @@ class SelectMusicDirSetting(QWidget):
                 border-radius: 10px;             /* 圆角 */
             }}
             QPushButton:hover {{
-                background-color: {theme_manager.current.button_hover};      /* 悬停时变深 */
+                background-color: {theme.button_hover};      /* 悬停时变深 */
             }}
             QPushButton:pressed {{
-                background-color: {theme_manager.current.button_selected};      /* 按下时更深 */
+                background-color: {theme.button_pressed};      /* 按下时更深 */
             }}
         """
         )
@@ -421,21 +425,47 @@ class StartUpSetting(QWidget):
 
 
 class ThemeBlockButton(QPushButton):
-    def __init__(self, color, parent=None):
+    """主题色色块：当前生效的那一个中心会有一颗白色圆点。"""
+
+    def __init__(self, color, name, parent=None):
         super().__init__(parent)
         self.color = color
+        self.name = name
+        self.selected = False
         self.setFixedSize(30, 30)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip(name)
+
+        # 选中标记：中间一颗白色小圆点，不依赖字体字形
+        self.dot = QLabel(self)
+        self.dot.setFixedSize(8, 8)
+        self.dot.setGeometry(11, 11, 8, 8)
+        self.dot.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.dot.setStyleSheet("background: white; border-radius: 4px;")
+        self.dot.setVisible(False)
+
+        self.update_style()
+
+    def set_selected(self, selected: bool):
+        if self.selected == selected:
+            return
+        self.selected = selected
+        self.update_style()
+
+    def update_style(self):
+        self.dot.setVisible(self.selected)
         self.setStyleSheet(
             f"""
             QPushButton {{
-                background-color: {color};
-                border-radius: 5px;
+                background-color: {self.color};
+                border: none;
+                border-radius: 8px;
             }}
             QPushButton:hover {{
-                background: {QColor(color).lighter(110).name()};
+                background-color: {QColor(self.color).lighter(108).name()};
             }}
             QPushButton:pressed {{
-                background: {QColor(color).lighter(120).name()};
+                background-color: {QColor(self.color).darker(105).name()};
             }}
         """
         )
@@ -457,19 +487,19 @@ class StyleSetting(QWidget):
         )
         self.dark_mode.set_checked(self.setting["dark_mode"])
 
-        self.theme_green = ThemeBlockButton(
-            theme_manager.get_representative_color(ThemeColor.GREEN)
+        self.theme_blue = ThemeBlockButton(
+            theme_manager.get_representative_color(ThemeColor.BLUE), "天蓝"
         )
         self.theme_purple = ThemeBlockButton(
-            theme_manager.get_representative_color(ThemeColor.PURPLE)
+            theme_manager.get_representative_color(ThemeColor.PURPLE), "藤紫"
         )
 
         self.dark_mode.stateChanged.connect(self.on_theme_mode_changed)
-        self.theme_green.clicked.connect(
-            lambda: theme_manager.set_theme(None, ThemeColor.GREEN)
+        self.theme_blue.clicked.connect(
+            lambda: self.on_theme_color_changed(ThemeColor.BLUE)
         )
         self.theme_purple.clicked.connect(
-            lambda: theme_manager.set_theme(None, ThemeColor.PURPLE)
+            lambda: self.on_theme_color_changed(ThemeColor.PURPLE)
         )
 
         self.init_ui()
@@ -488,7 +518,7 @@ class StyleSetting(QWidget):
         theme_layout.setSpacing(10)
         theme_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         theme_layout.addWidget(StyleFontLabel("主题"))
-        theme_layout.addWidget(self.theme_green)
+        theme_layout.addWidget(self.theme_blue)
         theme_layout.addWidget(self.theme_purple)
         theme_layout.addStretch(5)
 
@@ -507,13 +537,32 @@ class StyleSetting(QWidget):
         main_layout.addLayout(content_layout, 8)
 
     def update_style(self):
+        theme = theme_manager.current
         self.setStyleSheet(f"""
             #StyleSetting{{
-                border-bottom: 1px solid {theme_manager.current.divider};
+                border-bottom: 1px solid {theme.divider};
             }}
         """)
-        self.label.set_color(theme_manager.current.text_bold)
-        self.dark_mode.set_color(theme_manager.current.text_bold)
+        self.label.set_color(theme.text_strong)
+        self.dark_mode.set_color(theme.text_strong)
+        self.sync_theme_selection()
+
+    def sync_theme_selection(self):
+        """白色圆点跟随 themeManager 里真正生效的主题色。"""
+        current = theme_manager.color
+        self.theme_blue.set_selected(current == ThemeColor.BLUE)
+        self.theme_purple.set_selected(current == ThemeColor.PURPLE)
+
+    @Slot()
+    def on_theme_color_changed(self, color: ThemeColor):
+        if theme_manager.color == color:
+            return
+        theme_manager.set_theme(None, color)
+        # 主题色现在会持久化，下次启动沿用
+        self.setting["theme_color"] = color.value
+        config.save_value("style_setting", self.setting)
+        self.sync_theme_selection()
+        show_message("设置已更新", min_width=100)
 
     @Slot()
     def on_theme_mode_changed(self, checked):

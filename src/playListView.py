@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 
 from singleton.playListManager import play_list_manager
 from singleton.themeManager import theme_manager
+from styleTemplate.cardPainter import draw_card
 from styleTemplate.styleFontLabel import StyleFontLabel
 
 
@@ -80,10 +81,15 @@ class PlayListItemDelegate(QStyledItemDelegate):
         )  # 开启图像平滑变换
 
         # 绘制选中和悬停状态，背景透明
+        theme = theme_manager.current
+        painter.setPen(Qt.PenStyle.NoPen)
+        row_rect = option.rect.adjusted(6, 3, -6, -3)
         if option.state & QStyle.StateFlag.State_Selected:  # 选中
-            painter.fillRect(option.rect, theme_manager.current.playlist_selected)
+            painter.setBrush(QBrush(QColor(theme.surface_selected)))
+            painter.drawRoundedRect(row_rect, 10, 10)
         elif option.state & QStyle.StateFlag.State_MouseOver:  # 悬停
-            painter.fillRect(option.rect, theme_manager.current.playlist_hover)
+            painter.setBrush(QBrush(QColor(theme.surface_hover)))
+            painter.drawRoundedRect(row_rect, 10, 10)
 
         # 获取数据
         data = index.data(Qt.ItemDataRole.UserRole)
@@ -127,11 +133,11 @@ class PlayListItemDelegate(QStyledItemDelegate):
         text_left = cover_rect.right() + 5
 
         if data.idx == play_list_manager.get_current_song_index():
-            title_color = QColor(theme_manager.current.text_theme_normal)
-            artist_color = QColor(theme_manager.current.text_theme_light)
+            title_color = QColor(theme.text_accent)
+            artist_color = QColor(theme.text_accent_soft)
         else:
-            title_color = QColor(theme_manager.current.text_bold)
-            artist_color = QColor(theme_manager.current.text_light)
+            title_color = QColor(theme.text_strong)
+            artist_color = QColor(theme.text_muted)
 
         """
         绘制歌名
@@ -220,16 +226,17 @@ class PlayListView(QListView):
 
     def update_style(self):
         """设置样式"""
+        theme = theme_manager.current
         self.setStyleSheet(
             f"""
             #MusicList{{
                 background: transparent;
-                border-top: 1px solid {theme_manager.current.list_item_bg};
+                border-top: 1px solid {theme.divider};
             }}
             /* --- 垂直滚动条 --- */
             QScrollBar:vertical {{
                 border: none;
-                background-color: {theme_manager.current.list_item_bg};
+                background: transparent;
                 width: 6px;       /* 滚动条宽度 */
                 border-radius: 3px; /* 整体圆角 */
                 margin: 0;
@@ -237,14 +244,14 @@ class PlayListView(QListView):
 
             /* --- 滑块 (Handle) --- */
             QScrollBar::handle:vertical {{
-                background: {theme_manager.current.slider_bg};
+                background: {theme.scrollbar};
                 min-height: 50px;  /* 滑块最小高度，防止太短 */
                 border-radius: 3px; /* 滑块圆角 */
             }}
 
             /* 滑块悬停效果 */
             QScrollBar::handle:vertical:hover {{
-                background: {theme_manager.current.slider_progress};
+                background: {theme.scrollbar_hover};
             }}
 
             /* --- 上下箭头按钮 (隐藏) --- */
@@ -255,7 +262,7 @@ class PlayListView(QListView):
 
             /* --- 点击的轨道区域 (上下空白处) --- */
             QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
-                background: {theme_manager.current.playlist_bg};
+                background: transparent;
             }}
         """
         )
@@ -356,9 +363,6 @@ class PlayListWidget(QWidget):
         # 标题栏
         self.playlist_title = QWidget(self)
         self.playlist_title.setFixedHeight(50)
-        self.playlist_title.setStyleSheet(
-            f"border-bottom: 1px solid {theme_manager.current.slider_bg};"
-        )
         title_layout = QVBoxLayout(self.playlist_title)
         title_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_layout.addWidget(StyleFontLabel("播放列表", font_size=14))
@@ -368,10 +372,13 @@ class PlayListWidget(QWidget):
 
         # 布局
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 5)
+        main_layout.setContentsMargins(12, 10, 12, 12)
         main_layout.setSpacing(0)
         main_layout.addWidget(self.playlist_title)
         main_layout.addWidget(self.playlist_view)
+
+        self.update_style()
+        theme_manager.themeChanged.connect(self.update_style)
 
         self.anim = QPropertyAnimation(self, b"geometry")
         self.anim.setDuration(200)
@@ -432,17 +439,25 @@ class PlayListWidget(QWidget):
         self.overlay.hide()
         self.anim.finished.disconnect()  # 断开连接防止内存泄漏或重复触发
 
+    def update_style(self):
+        """跟随主题刷新标题分隔线与卡片"""
+        self.playlist_title.setStyleSheet(
+            f"background: transparent; border-bottom: 1px solid {theme_manager.current.divider};"
+        )
+        self.update()
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)  # 开启抗锯齿
 
-        # 绘制一个填充的圆角矩形
-        painter.setBrush(QBrush(QColor(theme_manager.current.playlist_bg)))  # 背景色
-        painter.setPen(Qt.PenStyle.NoPen)  # 无边框
-
-        # 绘制圆角矩形覆盖整个窗口
-        rect = QRect(0, 0, self.width(), self.height())
-        painter.drawRoundedRect(rect, 10, 10)
+        # 圆角卡片：面板本身是透明窗口，卡片四周留出一点空间给阴影
+        draw_card(
+            painter,
+            self.rect().adjusted(6, 8, -6, -8),
+            fill=theme_manager.current.card_bg,
+            border=theme_manager.current.divider,
+            shadow=theme_manager.current.shadow,
+        )
 
 
 class TestWindow(QMainWindow):

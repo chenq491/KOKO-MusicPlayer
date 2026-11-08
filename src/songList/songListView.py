@@ -91,17 +91,19 @@ class MusicListItemDelegate(QStyledItemDelegate):
         )  # 开启图像平滑变换
 
         painter.setPen(Qt.PenStyle.NoPen)
+        theme = theme_manager.current
+        # 行内缩进，配合圆角高亮，看起来像一张「卡片里的小卡片」
+        row_rect = option.rect.adjusted(1, 3, -1, -3)
         # 绘制背景，选中和悬停状态
         if option.state & QStyle.StateFlag.State_Selected:  # 选中
-            painter.setBrush(QBrush(QColor(theme_manager.current.list_item_selected)))
-            painter.drawRoundedRect(option.rect, 8, 8)
+            painter.setBrush(QBrush(QColor(theme.surface_selected)))
+            painter.drawRoundedRect(row_rect, 10, 10)
         elif option.state & QStyle.StateFlag.State_MouseOver:  # 悬停
-            painter.setBrush(QBrush(QColor(theme_manager.current.list_item_hover)))
-            painter.drawRoundedRect(option.rect, 8, 8)
-        else:
-            painter.fillRect(option.rect, QColor(theme_manager.current.window_bg))
+            painter.setBrush(QBrush(QColor(theme.surface_hover)))
+            painter.drawRoundedRect(row_rect, 10, 10)
+        # 普通行不画背景，直接透出页面卡片的白色底色
 
-        text_color = QColor(theme_manager.current.text_bold)
+        text_color = QColor(theme.text_strong)
 
         # 获取数据
         idx, data = index.data(Qt.ItemDataRole.UserRole)
@@ -157,7 +159,7 @@ class MusicListItemDelegate(QStyledItemDelegate):
         painter.drawPixmap(cover_rect, cover)
         # 边框
         # painter.setClipping(False)  # 关闭剪切，以便画边框在圆角轮廓上
-        painter.setPen(QPen(QColor("#333"), 2))  # 黑色边框
+        painter.setPen(QPen(QColor(theme.border), 1))  # 封面细边框
         painter.setBrush(Qt.BrushStyle.NoBrush)  # 无填充
         painter.drawPath(path)  # 再次绘制路径作为边框
 
@@ -199,7 +201,7 @@ class MusicListItemDelegate(QStyledItemDelegate):
         font.setBold(False)
         font.setPointSize(10)
         painter.setFont(font)
-        painter.setPen(theme_manager.current.text_light)
+        painter.setPen(theme.text_muted)
         elided_artist = fm.elidedText(
             artist, Qt.TextElideMode.ElideRight, artist_rect.width() - 10
         )
@@ -269,16 +271,17 @@ class MusicListView(QListView):
 
     def update_style(self):
         """设置样式"""
+        theme = theme_manager.current
         self.setStyleSheet(
             f"""
             #MusicList{{
                 background: transparent;
-                border-top: 1px solid {theme_manager.current.list_item_bg};
+                border-top: 1px solid {theme.divider};
             }}
             /* --- 垂直滚动条 --- */
             QScrollBar:vertical {{
                 border: none;
-                background-color: {theme_manager.current.list_item_bg};
+                background: transparent;
                 width: 6px;       /* 滚动条宽度 */
                 border-radius: 3px; /* 整体圆角 */
                 margin: 0;
@@ -286,14 +289,14 @@ class MusicListView(QListView):
 
             /* --- 滑块 (Handle) --- */
             QScrollBar::handle:vertical {{
-                background: {theme_manager.current.slider_bg};
+                background: {theme.scrollbar};
                 min-height: 50px;  /* 滑块最小高度，防止太短 */
                 border-radius: 3px; /* 滑块圆角 */
             }}
 
             /* 滑块悬停效果 */
             QScrollBar::handle:vertical:hover {{
-                background: {theme_manager.current.slider_progress};
+                background: {theme.scrollbar_hover};
             }}
 
             /* --- 上下箭头按钮 (隐藏) --- */
@@ -304,7 +307,7 @@ class MusicListView(QListView):
 
             /* --- 点击的轨道区域 (上下空白处) --- */
             QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
-                background: {theme_manager.current.window_bg};
+                background: transparent;
             }}
         """
         )

@@ -21,6 +21,8 @@ class StyleSlider(QSlider):
             self.rect().width() - 40,
             self.groove_height,
         )
+        # 颜色由 paintEvent 直接读取主题，只需要在主题变化时重绘
+        theme_manager.themeChanged.connect(self.update)
 
     def get_ratio(self):
         # 计算进度条的宽度
@@ -59,12 +61,12 @@ class StyleSlider(QSlider):
         """
         painter.save()
         # painter.setPen(Qt.PenStyle.NoPen)
-        painter.setPen(QPen(QColor(theme_manager.current.slider_bg), 2))  # 边框
-        painter.setBrush(QBrush(QColor(theme_manager.current.slider_bg)))  # 背景
+        painter.setPen(QPen(QColor(theme_manager.current.track), 2))  # 边框
+        painter.setBrush(QBrush(QColor(theme_manager.current.track)))  # 背景
         painter.drawRoundedRect(self.groove_rect, 5, 5)
 
         # 绘制滑槽进度
-        painter.setBrush(QBrush(QColor(theme_manager.current.slider_progress)))
+        painter.setBrush(QBrush(QColor(theme_manager.current.accent)))
         painter.drawRoundedRect(
             progress_rect,
             5 if progress_width > 0 else 0,  # 有进度才显示圆角
@@ -83,8 +85,8 @@ class StyleSlider(QSlider):
         painter.translate(center_x, center_y)
         if self.underMouse() or self.isSliderDown():  # 鼠标悬浮
             painter.scale(1.2, 1.2)
-        painter.setPen(QPen(QColor(theme_manager.current.text_bold), 2))
-        painter.setBrush(QBrush(QColor(255, 255, 255)))
+        painter.setPen(QPen(QColor(theme_manager.current.accent), 2))
+        painter.setBrush(QBrush(QColor(theme_manager.current.surface)))
         painter.drawEllipse(QPoint(0, 0), 8, 8)
         painter.restore()
 

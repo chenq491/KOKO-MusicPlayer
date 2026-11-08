@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from enum import Enum
 
 from PySide6.QtCore import QObject, Signal
-from PySide6.QtGui import QColor
 
 from singleton.config import config
+from singleton.themePalette import ThemePalette, build_palette
 
 
 class ThemeMode(Enum):
@@ -13,39 +13,95 @@ class ThemeMode(Enum):
 
 
 class ThemeColor(Enum):
+    """主题色（对应 Mizuki 的 hue 变量）"""
+
+    BLUE = "blue"
     PURPLE = "purple"
-    GREEN = "green"
+
+
+# 站点通过 --configHue 切换整套配色，这里保留同样的思路
+THEME_HUES = {
+    ThemeColor.BLUE: 240,
+    ThemeColor.PURPLE: 285,
+}
 
 
 @dataclass(frozen=True)
-class Theme:
-    window_bg: str = ""
+class Theme(ThemePalette):
+    """语义化色板 + 旧字段名的兼容层。
 
-    list_item_bg: str = ""
-    list_item_hover: str = ""
-    list_item_selected: str = ""
+    旧代码里到处都是 window_bg / text_bold 这种按外观命名的字段，
+    一次性改完风险太大，所以这里把旧名字映射到新的语义 token 上，
+    新代码请直接使用 ThemePalette 的字段。
+    """
 
-    button_bg: str = ""
-    button_hover: str = ""
-    button_selected: str = ""
+    @property
+    def window_bg(self) -> str:
+        return self.page_bg
 
-    slider_bg: str = ""
-    slider_progress: str = ""
+    @property
+    def list_item_bg(self) -> str:
+        return self.surface
 
-    playlist_bg: str = ""
-    playlist_hover: str = ""
-    playlist_selected: str = ""
+    @property
+    def list_item_hover(self) -> str:
+        return self.surface_hover
 
-    line_edit_bg: str = ""
-    checkbox_bg: str = ""
-    divider: str = ""
+    @property
+    def list_item_selected(self) -> str:
+        return self.surface_selected
 
-    text_light: str = ""
-    text_normal: str = ""
-    text_bold: str = ""
+    @property
+    def button_selected(self) -> str:
+        return self.button_pressed
 
-    text_theme_normal: str = ""
-    text_theme_light: str = ""
+    @property
+    def slider_bg(self) -> str:
+        return self.track
+
+    @property
+    def slider_progress(self) -> str:
+        return self.accent
+
+    @property
+    def playlist_bg(self) -> str:
+        return self.card_bg
+
+    @property
+    def playlist_hover(self) -> str:
+        return self.card_hover
+
+    @property
+    def playlist_selected(self) -> str:
+        return self.surface_selected
+
+    @property
+    def line_edit_bg(self) -> str:
+        return self.input_bg
+
+    @property
+    def checkbox_bg(self) -> str:
+        return self.accent
+
+    @property
+    def text_light(self) -> str:
+        return self.text_muted
+
+    @property
+    def text_normal(self) -> str:
+        return self.text_body
+
+    @property
+    def text_bold(self) -> str:
+        return self.text_strong
+
+    @property
+    def text_theme_normal(self) -> str:
+        return self.text_accent
+
+    @property
+    def text_theme_light(self) -> str:
+        return self.text_accent_soft
 
 
 class ThemeManager(QObject):
@@ -54,72 +110,59 @@ class ThemeManager(QObject):
     def __init__(self, /):
         super().__init__()
 
-        self.theme_colors = {"purple": "#8778ff", "green": "#8fd3f4"}
+        self._current_mode = self._read_mode()
+        self._current_color = self._read_color()
+        self.current = self._build()
 
-        self._current_mode = ThemeMode(config.get_value(["style_setting", "dark_mode"]))
-        self._current_color = None
-        self.current = Theme()
+    # ------------------------------------------------------------------ 读取配置
+    @staticmethod
+    def _read_mode() -> ThemeMode:
+        value = config.get_value(["style_setting", "dark_mode"])
+        return ThemeMode.DARK if value else ThemeMode.LIGHT
 
-        self.set_theme(self._current_mode, ThemeColor.GREEN)
+    @staticmethod
+    def _read_color() -> ThemeColor:
+        value = config.get_value(["style_setting", "theme_color"])
+        try:
+            return ThemeColor(value)
+        except ValueError:
+            return ThemeColor.BLUE
 
-    def set_theme(self, mode: ThemeMode, color: ThemeColor):
-        if mode is not None:
+    def _build(self) -> Theme:
+        palette = build_palette(
+            self._current_mode == ThemeMode.DARK,
+            THEME_HUES[self._current_color],
+        )
+        return Theme(**palette.__dict__)
+
+    # ------------------------------------------------------------------ 对外接口
+    def set_theme(self, mode: ThemeMode | None = None, color: ThemeColor | None = None):
+        """只改变运行时的主题，不写配置文件（由设置页负责持久化）。"""
+        changed = False
+        if mode is not None and mode != self._current_mode:
             self._current_mode = mode
-        if color is not None:
+            changed = True
+        if color is not None and color != self._current_color:
             self._current_color = color
+            changed = True
 
-        color = QColor(self.theme_colors[self._current_color.value])
-        if self._current_mode == ThemeMode.LIGHT:
-            self.current = Theme(
-                window_bg=color.lighter(140).name(),
-                list_item_bg=color.lighter(135).name(),
-                list_item_hover=color.lighter(130).name(),
-                list_item_selected=color.lighter(125).name(),
-                button_bg=color.name(),
-                button_hover=color.lighter(105).name(),
-                button_selected=color.lighter(110).name(),
-                slider_bg=color.lighter(120).name(),
-                slider_progress=color.darker(110).name(),
-                playlist_bg=color.name(),
-                playlist_hover=color.name(),
-                playlist_selected=color.name(),
-                line_edit_bg=color.lighter(135).name(),
-                checkbox_bg=color.name(),
-                divider=color.name(),
-                text_light="#7b7b8b",
-                text_normal="#5c6175",
-                text_bold="#4a4c57",
-                text_theme_normal=color.lighter(150).name(),
-                text_theme_light=color.lighter(135).name(),
-            )
-        else:
-            self.current = Theme(
-                window_bg="#13131a",
-                list_item_bg="#13131a",
-                list_item_hover="#272734",
-                list_item_selected="#3C3C4D",
-                button_bg=color.darker(120).name(),
-                button_hover=color.darker(110).name(),
-                button_selected=color.darker(105).name(),
-                slider_bg="#404049",
-                slider_progress=color.darker(130).name(),
-                playlist_bg="#2d2d38",
-                playlist_hover="#393944",
-                playlist_selected="#393944",
-                line_edit_bg="#121212",
-                checkbox_bg=color.darker(150).name(),
-                divider="#24242a",
-                text_light="#B4B4B4",
-                text_normal="#CBCBCB",
-                text_bold="#d0d0d1",
-                text_theme_normal=color.darker(120).name(),
-                text_theme_light=color.darker(135).name(),
-            )
+        if not changed:
+            return
 
+        self.current = self._build()
         self.themeChanged.emit()
 
-    def get_representative_color(self, color: ThemeColor):
-        return self.theme_colors[color.value]
+    def get_representative_color(self, color: ThemeColor) -> str:
+        """主题色按钮上要显示的主色"""
+        return build_palette(False, THEME_HUES[color]).accent
+
+    @property
+    def mode(self) -> ThemeMode:
+        return self._current_mode
+
+    @property
+    def color(self) -> ThemeColor:
+        return self._current_color
 
 
 theme_manager = ThemeManager()

@@ -30,10 +30,12 @@ class SvgIconButton(QPushButton):
         theme_manager.themeChanged.connect(self.set_icon)
 
     def set_icon(self):
-        self.normal_color = theme_manager.current.text_normal
-        self.hover_color = theme_manager.current.text_light
+        # 静止态用正文色，悬停时提亮成主题色（原来的 hover 比常态更浅，方向是反的）
+        self.normal_color = theme_manager.current.text_body
+        self.hover_color = theme_manager.current.accent
         self.create_icon()
-        self.setIcon(self.btn_icon)
+        # 主题切换时鼠标可能正停在按钮上，这里按当前悬停状态重设图标
+        self.setIcon(self.hover_icon if self.underMouse() else self.btn_icon)
 
     # @abstractmethod
     def create_icon(self):

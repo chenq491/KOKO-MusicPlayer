@@ -83,61 +83,65 @@ class SearchBox(QWidget):
 
     def init_style(self):
         """设置样式表，核心美化逻辑"""
+        theme = theme_manager.current
         self.setStyleSheet(f"""
             /* 搜索框容器 */
             #SearchBox {{
-                background: {theme_manager.current.line_edit_bg};
-                border-radius: 5px;  /* 圆角 */
-                border: 1px solid {theme_manager.current.list_item_hover};
+                background: {theme.input_bg};
+                border-radius: 10px;  /* 圆角，和卡片保持一致的柔和感 */
+                border: 1px solid {theme.divider};
             }}
 
             /* 输入框基础样式 */
             #SearchLineEdit {{
-                background: transparent;  /* 透明背景，继承容器渐变 */
-                color: {theme_manager.current.text_bold};
+                background: transparent;  /* 透明背景，继承容器样式 */
+                color: {theme.text_body};
                 border: none;
                 outline: none;
+                selection-background-color: {theme.surface_selected};
+                selection-color: {theme.text_strong};
             }}
 
             /* 输入框聚焦效果 */
             #SearchLineEdit:focus {{
-                color: {theme_manager.current.text_bold};
+                color: {theme.text_strong};
             }}
 
             /* 输入框占位符文字样式 */
             #SearchLineEdit::placeholder {{
-                color: {theme_manager.current.text_bold};
+                color: {theme.text_muted};
                 font-style: italic;
             }}
 
             /* 搜索按钮默认样式 */
             #SearchButton {{
-                border-radius: 5px;
+                border-radius: 8px;
                 background: transparent;
             }}
 
             /* 按钮hover效果 */
             #SearchButton:hover {{
-                background: {theme_manager.current.button_hover};
+                background: {theme.button_hover};
             }}
 
             /* 按钮按下效果 */
             #SearchButton:pressed {{
-                background: {theme_manager.current.button_selected};
+                background: {theme.button_pressed};
             }}
-            
+
             /* 下拉框样式 */
             #SearchComboBox{{
-                background-color: {theme_manager.current.list_item_hover};      /* 背景色 */
-                color: {theme_manager.current.text_bold};                 /* 文字颜色 */
-                border-radius: 5px;             /* 圆角 */
+                background-color: {theme.button_bg};      /* 软按钮色 */
+                color: {theme.text_body};
+                border: none;
+                border-radius: 8px;             /* 圆角 */
                 padding: 5px 8px;              /* 内边距 */
                 margin: 0 1px;
                 font-size: 13px;
                 font-weight: bold;
             }}
             #SearchComboBox:hover {{
-                background-color: {theme_manager.current.button_hover};
+                background-color: {theme.button_hover};
             }}
             #SearchComboBox::drop-down {{
                 border: none;                   /* 去除下拉按钮的边框 */
@@ -146,27 +150,27 @@ class SearchBox(QWidget):
 
             /* 下拉列表的样式 */
             #SearchComboBox QAbstractItemView {{
-                background-color: {theme_manager.current.list_item_hover};
-                color: {theme_manager.current.text_bold};
+                background-color: {theme.surface};
+                color: {theme.text_body};
+                border: 1px solid {theme.divider};
                 outline: none;
-                border: none;
             }}
-            
+
             #SearchComboBox QAbstractItemView::item {{
                 height: 30px;                   /* 选项高度 */
                 padding-left: 5px;
             }}
-            
+
             #SearchComboBox QAbstractItemView::item:hover {{
-                background-color: {theme_manager.current.button_hover};      /* 悬停背景色 (浅灰) */
-                color: {theme_manager.current.text_bold};                 /* 悬停文字变色 (可选) */
+                background-color: {theme.surface_hover};
+                color: {theme.text_strong};
                 cursor: pointer;
             }}
-            
+
             /* --- 5. 选项选中样式 --- */
             QComboBox QAbstractItemView::item:selected {{
-                background-color: {theme_manager.current.button_selected};      /* 选中项背景 (浅蓝) */
-                color: {theme_manager.current.text_bold};                 /* 选中项文字 (主题色) */
+                background-color: {theme.surface_selected};
+                color: {theme.text_accent};
                 font-weight: bold;
             }}
         """)

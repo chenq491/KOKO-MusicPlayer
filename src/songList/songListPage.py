@@ -27,10 +27,14 @@ class SongListPage(QWidget):
 
         self.set_layout()
         self.bind()
+        # 表头和行内的颜色都是绘制时现取的，主题切换后要主动重绘
+        theme_manager.themeChanged.connect(self.update_theme)
 
     def set_layout(self):
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(6, 0, 0, 0)
+        # 外层卡片由主窗口绘制，这里留出卡片内边距
+        main_layout.setContentsMargins(14, 14, 7, 14)
+        main_layout.setSpacing(4)
         main_layout.addWidget(self.tool_bar)
         main_layout.addWidget(self.list_title)
         main_layout.addWidget(self.list_body)
@@ -38,6 +42,12 @@ class SongListPage(QWidget):
     def bind(self):
         self.tool_bar.searchSignal.connect(self.on_search)
         self.list_body.itemDoubleClicked.connect(self.songItemDoubleClicked)
+
+    def update_theme(self):
+        """主题切换后重绘表头与所有行（颜色都是 paintEvent 里现取的）"""
+        self.list_title.update()
+        self.list_body.viewport().update()
+        self.update()
 
     def show_music_list(self):
         """显示音乐列表"""
@@ -83,7 +93,8 @@ class ListTitle(QWidget):
         font.setPointSize(10)
         font.setBold(True)
         painter.setFont(font)
-        painter.setPen(theme_manager.current.text_bold)
+        # 表头用弱化的次要文字色，避免和白卡片抢视线
+        painter.setPen(theme_manager.current.text_muted)
 
         w = rect.left()
         idx_width = int(rect.width() * 0.04)

@@ -38,8 +38,9 @@ class ProgressSlider(QSlider):
         theme_manager.themeChanged.connect(self.update_style)
 
     def update_style(self):
-        self.groove_bg_color = QColor(theme_manager.current.slider_bg)
-        self.groove_progress_color = QColor(theme_manager.current.slider_progress)
+        self.groove_bg_color = QColor(theme_manager.current.track)
+        self.groove_progress_color = QColor(theme_manager.current.accent)
+        self.update()
 
     def resizeEvent(self, event, /):
         super().resizeEvent(event)
