@@ -487,20 +487,25 @@ class StyleSetting(QWidget):
         )
         self.dark_mode.set_checked(self.setting["dark_mode"])
 
-        self.theme_blue = ThemeBlockButton(
-            theme_manager.get_representative_color(ThemeColor.BLUE), "天蓝"
-        )
-        self.theme_purple = ThemeBlockButton(
-            theme_manager.get_representative_color(ThemeColor.PURPLE), "藤紫"
-        )
+        # 主题色与中文名的对应关系：新增颜色只要在这里加一项
+        theme_names = {
+            ThemeColor.BLUE: "天蓝",
+            ThemeColor.PURPLE: "藤紫",
+            ThemeColor.PINK: "樱粉",
+            ThemeColor.GREEN: "苔绿",
+            ThemeColor.AMBER: "琥珀",
+        }
+        self.theme_buttons = {}
+        for color, name in theme_names.items():
+            button = ThemeBlockButton(
+                theme_manager.get_representative_color(color), name
+            )
+            button.clicked.connect(
+                lambda _=False, c=color: self.on_theme_color_changed(c)
+            )
+            self.theme_buttons[color] = button
 
         self.dark_mode.stateChanged.connect(self.on_theme_mode_changed)
-        self.theme_blue.clicked.connect(
-            lambda: self.on_theme_color_changed(ThemeColor.BLUE)
-        )
-        self.theme_purple.clicked.connect(
-            lambda: self.on_theme_color_changed(ThemeColor.PURPLE)
-        )
 
         self.init_ui()
         self.update_style()
@@ -518,8 +523,8 @@ class StyleSetting(QWidget):
         theme_layout.setSpacing(10)
         theme_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         theme_layout.addWidget(StyleFontLabel("主题"))
-        theme_layout.addWidget(self.theme_blue)
-        theme_layout.addWidget(self.theme_purple)
+        for button in self.theme_buttons.values():
+            theme_layout.addWidget(button)
         theme_layout.addStretch(5)
 
         content_layout = QVBoxLayout()
@@ -550,8 +555,8 @@ class StyleSetting(QWidget):
     def sync_theme_selection(self):
         """白色圆点跟随 themeManager 里真正生效的主题色。"""
         current = theme_manager.color
-        self.theme_blue.set_selected(current == ThemeColor.BLUE)
-        self.theme_purple.set_selected(current == ThemeColor.PURPLE)
+        for color, button in self.theme_buttons.items():
+            button.set_selected(color == current)
 
     @Slot()
     def on_theme_color_changed(self, color: ThemeColor):

@@ -17,12 +17,18 @@ class ThemeColor(Enum):
 
     BLUE = "blue"
     PURPLE = "purple"
+    PINK = "pink"
+    GREEN = "green"
+    AMBER = "amber"
 
 
 # 站点通过 --configHue 切换整套配色，这里保留同样的思路
 THEME_HUES = {
     ThemeColor.BLUE: 240,
     ThemeColor.PURPLE: 285,
+    ThemeColor.PINK: 350,
+    ThemeColor.GREEN: 150,
+    ThemeColor.AMBER: 60,
 }
 
 

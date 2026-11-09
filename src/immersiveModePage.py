@@ -4,6 +4,7 @@ from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from singleton.immersiveModeManager import immersive_mode_manager
+from singleton.themeManager import theme_manager
 from utils.utils import fft_from_chunk
 
 
@@ -165,6 +166,23 @@ class SpectrumWidget(QWidget):
         self.timer.start(20)
         self.timer.timeout.connect(self.update)
 
+        # 频谱柱子的渐变两端：底部亮、顶部深，颜色跟随当前主题
+        self._bar_bottom_color = QColor(0, 0, 0)
+        self._bar_top_color = QColor(0, 0, 0)
+        self.update_style()
+        theme_manager.themeChanged.connect(self.update_style)
+
+    def update_style(self):
+        """按当前主题色重算频谱柱子的渐变色"""
+        theme = theme_manager.current
+        bottom = QColor(theme.accent)
+        bottom.setAlpha(230)
+        top = QColor(theme.accent_hover)
+        top.setAlpha(200)
+        self._bar_bottom_color = bottom
+        self._bar_top_color = top
+        self.update()
+
     def update_spectrum(self, data):
         """
         更新视图数据
@@ -206,10 +224,10 @@ class SpectrumWidget(QWidget):
             x = left_margin + i * bar_w
             y = h - bar_h
 
-            # 垂直渐变
+            # 垂直渐变：颜色取当前主题色
             gradient = QLinearGradient(x, h, x, y)
-            gradient.setColorAt(0.0, QColor(100, 200, 255, 220))  # 底部
-            gradient.setColorAt(1.0, QColor(30, 120, 200, 200))  # 顶部
+            gradient.setColorAt(0.0, self._bar_bottom_color)  # 底部
+            gradient.setColorAt(1.0, self._bar_top_color)  # 顶部
             painter.setBrush(gradient)
 
             # 圆角矩形
