@@ -9,6 +9,7 @@ from constant import COVER_SiZE, PlayMode, SongChanged
 from singleton.themeManager import theme_manager
 from entity.songItem import SongItem
 from styleTemplate.styleFontLabel import StyleFontLabel
+from styleTemplate.themeText import TextRole
 from utils.path import get_file_path
 from utils.utils import ms_to_str
 
@@ -61,12 +62,10 @@ class BottomPanel(QWidget):
         )
 
         # 当前播放歌曲标题
-        self.current_song_title = StyleFontLabel(
-            "歌曲标题", font_size=11, color=theme_manager.current.text_bold
-        )
+        self.current_song_title = StyleFontLabel("歌曲标题", font_size=11)
         self.current_song_title.setWordWrap(True)
         self.current_song_artist = StyleFontLabel(
-            "歌手", font_size=10, color=theme_manager.current.text_light
+            "歌手", font_size=10, role=TextRole.MUTED
         )
         self.current_song_artist.setWordWrap(True)
 
@@ -89,7 +88,7 @@ class BottomPanel(QWidget):
         self.location_button = LocationButton(self)
         # 歌曲时间信息
         self.time_label = StyleFontLabel(
-            "00:00 / 00:00", font_size=11, color=theme_manager.current.text_normal
+            "00:00 / 00:00", font_size=11, role=TextRole.BODY
         )
 
         self.init_ui()
@@ -186,7 +185,6 @@ class BottomPanel(QWidget):
         self.progress_slider.valueChanged.connect(
             self.on_progress_slider_changed
         )  # 歌曲进度条拖动
-        theme_manager.themeChanged.connect(self.update_text_color)
 
     def set_current_song(self, song_item: SongItem):
         """设置当前播放音乐"""
@@ -275,11 +273,6 @@ class BottomPanel(QWidget):
     def on_progress_slider_changed(self, value):
         """歌曲进度改变"""
         self.songProgressChanged.emit(value)
-
-    def update_text_color(self):
-        self.current_song_title.set_color(theme_manager.current.text_bold)
-        self.current_song_artist.set_color(theme_manager.current.text_light)
-        self.time_label.set_color(theme_manager.current.text_normal)
 
 
 if __name__ == "__main__":

@@ -10,7 +10,6 @@ from assets.svg import (
     min_icon,
     window_icon,
 )
-from singleton.themeManager import theme_manager
 from styleTemplate.styleFontLabel import StyleFontLabel
 from styleTemplate.svgIconButton import SvgIconButton
 from utils.utils import create_svg_icon
@@ -76,10 +75,6 @@ class TitleBar(QWidget):
         self.min_button.clicked.connect(self.parent.showMinimized)
         self.max_button.clicked.connect(self.toggle_maximize)
         self.close_button.clicked.connect(self.parent.close_smooth)
-
-        theme_manager.themeChanged.connect(
-            lambda: self.title.set_color(theme_manager.current.text_bold)
-        )
 
     def freeze_layout(self):
         # 挂起布局，暂停所有子控件的几何更新

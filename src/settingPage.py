@@ -64,7 +64,7 @@ class SettingPage(QWidget):
         theme_manager.themeChanged.connect(self.update_style)
 
     def update_style(self):
-        self.title.set_color(theme_manager.current.text_bold)
+        # 标题等文字由 StyleFontLabel 自己跟随主题，这里只处理子区域的结构样式
         self.content_widget.update_style()
         self.main_area.update_style()
 
@@ -228,7 +228,6 @@ class SelectMusicDirSetting(QWidget):
                 border-bottom: 1px solid {theme.divider};
             }}
         """)
-        self.label.set_color(theme.text_strong)
         self.music_dir_path_line.setStyleSheet(
             f"""
             QLineEdit {{
@@ -327,9 +326,6 @@ class MusicVolumeSetting(QWidget):
                 border-bottom: 1px solid {theme_manager.current.divider};
             }}
         """)
-        self.label.set_color(theme_manager.current.text_bold)
-        self.zero_label.set_color(theme_manager.current.text_bold)
-        self.volume_label.set_color(theme_manager.current.text_bold)
 
     def on_volume_changed(self, value):
         """音量变化"""
@@ -400,9 +396,6 @@ class StartUpSetting(QWidget):
                 border-bottom: 1px solid {theme_manager.current.divider};
             }}
         """)
-        self.label.set_color(theme_manager.current.text_bold)
-        self.keep_last_process.set_color(theme_manager.current.text_bold)
-        self.shuffle_music_list.set_color(theme_manager.current.text_bold)
 
     def bind(self):
         """绑定事件"""
@@ -548,8 +541,6 @@ class StyleSetting(QWidget):
                 border-bottom: 1px solid {theme.divider};
             }}
         """)
-        self.label.set_color(theme.text_strong)
-        self.dark_mode.set_color(theme.text_strong)
         self.sync_theme_selection()
 
     def sync_theme_selection(self):
@@ -717,8 +708,6 @@ class ImmersiveModeSetting(QWidget):
                 border-bottom: 1px solid {theme_manager.current.divider};
             }}
         """)
-        self.label.set_color(theme_manager.current.text_bold)
-        self.panoramic_mode.set_color(theme_manager.current.text_bold)
 
     @Slot()
     def on_panoramic_mode_changed(self, checked):

@@ -5,10 +5,8 @@ import numpy as np
 from PySide6.QtCore import QByteArray, Qt, QRect
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont, QPainterPath
 from PySide6.QtSvg import QSvgRenderer
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication
 from scipy.fft import rfft
-
-from singleton.themeManager import theme_manager
 
 
 def ms_to_str(ms: int) -> str:
@@ -205,13 +203,13 @@ def draw_rounded_pixmap(pixmap, radius=10):
     return rounded_pixmap
 
 
-def create_style_label(text, font_size=13, bold=True, color=theme_manager.current.text_bold):
-    label = QLabel(text)
-    font = QFont("Microsoft YaHei", font_size)
-    font.setBold(bold)
-    label.setFont(font)
-    label.setStyleSheet(f"color: {color}")
-    return label
+def create_style_label(text, font_size=13, bold=True, role="strong", color=None):
+    """创建会自动跟随主题的标签（旧接口保留，内部改用 StyleFontLabel）"""
+    from styleTemplate.styleFontLabel import StyleFontLabel
+
+    return StyleFontLabel(
+        text, font_size=font_size, bold=bold, role=role, color=color
+    )
 
 def get_file_info(file_path):
     """
