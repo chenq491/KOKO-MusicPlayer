@@ -347,6 +347,13 @@ class DimOverly(QWidget):
 
 
 class PlayListWidget(QWidget):
+    # 宽度固定，不随主窗口宽度变化
+    WIDTH = 360
+    # 高度按主窗口高度的比例（窗口很矮时用 MIN_HEIGHT 兜底）
+    HEIGHT_RATIO = 0.8
+    TOP_RATIO = 0.05
+    MIN_HEIGHT = 320
+
     def __init__(self, parent=None):
         super().__init__(parent)
         # 1. 去掉窗口边框
@@ -354,8 +361,8 @@ class PlayListWidget(QWidget):
         # 2. 设置窗口背景透明（关键步骤，否则会有白色矩形底色）
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        self.setFixedWidth(self.parent().width() * 0.3)
-        self.setFixedHeight(self.parent().height() * 0.8)
+        # 尺寸不写死，交给 update_geometry() 按主窗口比例算
+        self.is_showing = False
         self.hide()
 
         self.overlay = DimOverly(parent, self)
@@ -384,38 +391,60 @@ class PlayListWidget(QWidget):
         self.anim.setDuration(200)
         self.anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
 
-    def update_geometry(self):
-        """更新面板的位置"""
-        rect = self.parent().rect()
-        self.setGeometry(
-            rect.width(),
-            self.parent().height() * 0.05,
-            self.width(),
-            self.height(),  # 位置  # 大小
+    def panel_size(self):
+        """宽度固定，高度按主窗口高度比例算（并做最小/最大兜底）"""
+        parent = self.parent()
+        height = int(parent.height() * self.HEIGHT_RATIO)
+        height = min(max(height, self.MIN_HEIGHT), parent.height())
+        width = min(self.WIDTH, parent.width())
+        return width, height
+
+    def panel_top(self):
+        """垂直方向留白，同样按窗口高度取比例"""
+        return int(self.parent().height() * self.TOP_RATIO)
+
+    def shown_rect(self):
+        """展开后的几何：贴右侧、垂直居中偏上"""
+        width, height = self.panel_size()
+        return QRect(
+            self.parent().width() - width,
+            self.panel_top(),
+            width,
+            height,
         )
+
+    def hidden_rect(self):
+        """收起后的几何：整体滑到窗口右侧外"""
+        width, height = self.panel_size()
+        return QRect(
+            self.parent().width(),
+            self.panel_top(),
+            width,
+            height,
+        )
+
+    def update_geometry(self):
+        """主窗口尺寸/位置变化时，重算面板的位置与高度（宽度固定）"""
+        target = self.shown_rect() if self.is_showing else self.hidden_rect()
+        if self.anim.state == QPropertyAnimation.State.Running:
+            # 动画过程中只改终点，避免面板突然跳一下
+            self.anim.setEndValue(target)
+        else:
+            self.setGeometry(target)
         self.overlay.update_geomoetry()
 
     def show_or_hidden(self, is_show):
         """展示或隐藏面板"""
         start_geo = self.geometry()
+        self.is_showing = is_show
         if is_show:
             self.playlist_view.set_current()
             self.overlay.show()
             self.show()
-            end_geo = QRect(
-                self.parent().width() - self.width(),
-                self.parent().height() * 0.05,
-                self.width(),
-                self.height(),
-            )
+            end_geo = self.shown_rect()
         else:
             # 收起，滑到右侧外
-            end_geo = QRect(
-                self.parent().width(),
-                self.parent().height() * 0.05,
-                self.width(),
-                self.height(),
-            )
+            end_geo = self.hidden_rect()
             self.anim.finished.connect(self._on_hiden_finished)
 
         self.setGeometry(start_geo)
